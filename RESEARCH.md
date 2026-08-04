@@ -117,3 +117,225 @@ Game-feel numbers (grounded in Celeste's shipped values — changelog https://ww
 - Starting-area name and exact room palettes of Dewdrop Dynasty: no wiki found; §3–4 lean on the anchors and the verified "colorful biomes, palette shift per region" rule.
 - Exact hexes of Lospec's Dewdrop Dynasty-40: page unreachable via proxy (403); URL provided for later verification.
 - Any Roblox connection: none found; treat as erroneous.
+
+---
+
+# Addendum 2 (2026-08-04) — Architecture, Physics & Spec-Craft Dossier
+
+## 1. Platformer physics recipes (the canonical numbers)
+
+### 1.1 Fixed timestep
+- **Update at a fixed 60 Hz** (`dt = 1/60 s`) with an accumulator loop; render as fast as `requestAnimationFrame` allows. Variable `dt` makes physics non-deterministic and breaks tuned jump arcs; the canonical treatment is Glenn Fiedler's "Fix Your Timestep" (https://gafferongames.com/post/fix_your_timestep/): accumulate frame time, step simulation in fixed slices, optionally interpolate render state.
+- Clamp the accumulated frame delta (e.g. max 0.25 s) so a background tab doesn't cause a "spiral of death" or a teleporting player.
+- Celeste itself simulates at a locked 60 fps; all its constants below are per-second values applied at 60 Hz (source: Celeste's actual Player.cs, https://github.com/NoelFB/Celeste/blob/master/Source/Player/Player.cs).
+- A fixed timestep is also what makes **Playwright testing deterministic**: same inputs → same positions.
+
+### 1.2 Deriving gravity and jump velocity from designer intent
+From Kyle Pittman's GDC 2016 talk "Math for Game Programmers: Building a Better Jump" (https://www.youtube.com/watch?v=hG9SzQxaCm8, slides https://media.gdcvault.com/gdc2016/Presentations/Pittman_Kyle_BuildingBetterJump.pdf): never pick gravity and jump velocity by feel-tweaking two coupled numbers. Pick **jump height `h`** and **time-to-apex `t_h`**, then derive:
+
+```
+gravity g    = 2h / t_h²
+jumpSpeed v0 = 2h / t_h        (equivalently v0 = sqrt(2 g h))
+```
+
+Good starting point for a tight metroidvania: `h = 3.5 tiles`, `t_h = 0.30–0.35 s` → with 16 px tiles: `g ≈ 1244 px/s²`, `v0 ≈ 373 px/s`. Anything with `t_h > 0.5 s` reads as floaty.
+
+Pittman's second key idea: **the arc need not be one parabola** — use higher gravity after apex (fall gravity ≈ 1.6–2× rise gravity) so the fall is snappier than the rise.
+
+### 1.3 The Celeste reference constants (real source code)
+From NoelFB/Celeste `Player.cs` (verified directly from the repo). Celeste uses **8 px tiles**:
+
+| Constant | Value | In tiles (8 px) | Meaning |
+|---|---|---|---|
+| `Gravity` | 900 px/s² | 112.5 t/s² | base gravity |
+| `HalfGravThreshold` | 40 px/s | — | **apex modifier**: gravity × 0.5 while `|vy| < 40` and jump held |
+| `MaxFall` | 160 px/s | 20 t/s | normal terminal velocity |
+| `FastMaxFall` | 240 px/s | 30 t/s | fast-fall (holding down) |
+| `MaxRun` | 90 px/s | 11.25 t/s | run speed |
+| `RunAccel` | 1000 px/s² | — | ground acceleration (0→max in ~0.09 s) |
+| `RunReduce` | 400 px/s² | — | deceleration above max speed |
+| `AirMult` | 0.65 | — | air control = 65% of ground accel |
+| `JumpSpeed` | −105 px/s | 13 t/s | initial jump velocity |
+| `JumpHBoost` | 40 px/s | — | horizontal speed added on jump in move direction |
+| `VarJumpTime` | 0.2 s | — | **variable jump**: jump speed is *sustained* up to 0.2 s while held |
+| `JumpGraceTime` | 0.1 s | — | **coyote time = 100 ms (6 frames)** |
+| `UpwardCornerCorrection` | 4 px | — | ceiling corner-correction nudge |
+| `DashSpeed` | 240 px/s | 30 t/s | dash velocity |
+| `DashTime` | 0.15 s | — | dash duration (15 frames, incl. freeze) |
+| `DashCooldown` | 0.2 s | — | before next dash |
+| `EndDashSpeed` | 160 px/s | — | speed retained when dash ends |
+| `DashCornerCorrection` | 4 px | — | corner nudge while dashing |
+| `WallSlideStartMax` | 20 px/s | — | fall speed cap when wall-slide starts |
+| `WallSlideTime` | 1.2 s | — | slide cap relaxes over this time |
+| `WallJumpHSpeed` | 130 px/s (`MaxRun+JumpHBoost`) | 16.25 t/s | horizontal wall-jump kick |
+| `WallJumpForceTime` | 0.16 s | — | input is overridden away from wall for 160 ms |
+| `WallJumpCheckDist` | 3 px | — | wall-jump works up to 3 px from wall |
+
+Notes:
+- **Variable jump height, Celeste-style**: Celeste *holds* `vy = JumpSpeed` for up to `VarJumpTime = 0.2 s` while the button is held; releasing ends the sustain. The simpler, equally accepted recipe: on early release, multiply gravity by **2–3×** (or cut `vy` in half once). Either works; pick one and lock it.
+- **Dash freeze frames**: the 15-frame dash includes **3 freeze frames** of hit-stop at dash start (Celeste Tech wiki, https://celeste.ink/wiki/Tech).
+- **Coyote time**: Celeste = 0.1 s; community norm **80–150 ms**. **Jump buffer**: Celeste ≈ 5 frames (~83 ms); norm **80–120 ms**. Both described in Maddy Thorson's "Celeste & Forgiveness" (https://maddythorson.medium.com/celeste-forgiveness-31e4a40399f1).
+
+### 1.4 Recommended locked constants for a 16 px-tile game (Celeste-scaled ×2)
+```
+TILE=16  UPDATE_HZ=60
+maxRun=180 px/s        runAccel=2000   runReduce=800   airMult=0.65
+gravity=1800 px/s²     maxFall=320     fastFall=480
+jumpSpeed=-360         varJumpTime=0.2 s (or releaseGravMult=2.5)
+apexGravMult=0.5 when |vy|<80 px/s
+coyoteTime=0.1 s       jumpBuffer=0.1 s      jumpHBoost=80
+wallSlideMax=110       wallJump=(±260, -360)  wallJumpLockTime=0.16 s
+dashSpeed=480          dashTime=0.15 s        dashCooldown=0.2 s    dashFreeze=3 frames (50 ms)
+cornerCorrection=8 px (Celeste's 4 px scaled for 16 px tiles)
+```
+
+## 2. Collision: AABB vs tile grid
+
+### 2.1 Core algorithm — axis-separated move-and-slide
+Canonical references: Rodrigo Monteiro's "The Guide to Implementing 2D Platformers" (http://higherorderfun.com/blog/2012/05/20/the-guide-to-implementing-2d-platformers/), katyscode's "Collision Detection for Dummies", and Maddy Thorson's "Celeste and TowerFall Physics" (https://maddythorson.medium.com/celeste-and-towerfall-physics-d24bd2ae0fc5):
+
+1. Keep **integer pixel positions** plus a float sub-pixel remainder per axis (Celeste's `MoveH/MoveV` pattern).
+2. Each step: **move X first, resolve; then move Y, resolve** — never both at once. Axis separation makes wall-vs-floor decisions unambiguous and eliminates most corner snagging.
+3. To move N pixels, **step 1 px at a time**, checking the tile grid each step. At 60 Hz even a 480 px/s dash is 8 px/frame — trivially cheap, and **tunneling becomes impossible by construction** (Celeste's actual approach).
+4. On collision: zero that axis's velocity, snap flush to the tile edge.
+5. Collision queries = check the tiles overlapping each edge of the AABB (`floor(x/TILE)` math). Never iterate all tiles.
+
+### 2.2 One-way (semi-solid) platforms
+- Solid only when: `vy >= 0` **and** the player's feet were at-or-above the platform top on the previous step (`prevBottom <= platTop`). Never collide moving upward or from the side.
+- Drop-through: pressing Down+Jump disables that platform's collision for ~0.25 s.
+
+### 2.3 Corner correction (the polish move)
+When upward motion is blocked but the ceiling overlap is only a few pixels, **shift the player horizontally (up to 4–8 px) and let the jump continue** instead of bonking. Celeste: `UpwardCornerCorrection = 4 px` at 8 px tiles → use ~8 px with 16 px tiles. Walkthrough: https://amano.games/devlog/how-to-correct-a-corner.
+
+### 2.4 Pitfalls
+- **Tunneling**: solved by pixel-stepped movement. Do not trust `pos += vel*dt` teleport-then-resolve.
+- **Corner catching / seam snags**: caused by resolving X and Y together, or by checking collision against individual tile rects. Axis separation + treating the grid as a solidity query fixes it.
+- **Sticky walls**: don't zero `vx` when merely brushing a wall while airborne unless actually moving into it.
+- **Slopes: skip for v1.** Largest complexity jump in tile platformers; rectangles + one-ways read fine.
+
+## 3. Architecture for fully swappable art
+
+### 3.1 Asset manifest pattern
+One indirection point: game code refers to **logical names only** (`"player.run"`, `"tiles.rock"`), never to files. A single manifest maps logical name → sheet + frames + pivot + fps (the shape of the TexturePacker "JSON hash" format, https://www.codeandweb.com/texturepacker/documentation):
+
+```jsonc
+{
+  "sheets": { "player": "art/player.png", "tiles": "art/tiles.png" },
+  "sprites": {
+    "player.idle": { "sheet": "player", "frames": [[0,0,16,24],[16,0,16,24]], "fps": 4,  "pivot": [8,24], "loop": true },
+    "player.run":  { "sheet": "player", "frames": [[0,24,16,24],[16,24,16,24],[32,24,16,24],[48,24,16,24]], "fps": 12, "pivot": [8,24], "loop": true }
+  }
+}
+```
+Rules that make art swappable later:
+- **Pivot in the manifest, not in code.** Feet-center pivot for characters; render = `draw(frame, x - pivot.x, y - pivot.y)`.
+- **Hitboxes are defined in entity data, never derived from sprite size.**
+- Animation state machine selects logical names; a later art pass changes frame counts/fps by editing only the manifest.
+
+### 3.2 Procedural-placeholder fallback (zero binary files)
+Keep a registry of **draw functions keyed by the same logical names**. The loader tries the PNG from the manifest; on 404 it calls the generator, which draws each frame into an **offscreen canvas** at the exact manifest frame size and hands back the same "sheet" interface (a canvas is a legal `drawImage` source).
+
+```js
+async function loadSheet(name, url, fallback) {
+  try { return await loadImage(url); }
+  catch { const c = document.createElement('canvas'); fallback(c.getContext('2d')); return c; }
+}
+```
+- Placeholders should be **real little sprites** (silhouette + 2–3 colors + outline, distinct per frame), not colored rects — so feel and readability are testable before art exists.
+- Because sizes/pivots come from the manifest, final PNGs later **drop in with zero code changes** — the definition of "art/code separation".
+- Precedent: js13kGames scene, ZzFX (https://github.com/KilledByAPixel/ZzFX), LittleJS.
+
+### 3.3 Tile atlas + autotiling — recommend 4-bit / 16-tile
+Standard schemes (BorisTheBrave "Beyond Basic Autotiling" https://www.boristhebrave.com/2021/09/12/beyond-basic-autotiling/; Red Blob https://www.redblobgames.com/articles/autotile/claude/):
+- **4-bit cardinal bitmask (16 tiles)**: `index = N·1 + E·2 + S·4 + W·8`. 16 tiles to draw. No inner corners — slightly blockier.
+- **8-bit blob (47 tiles)**: proper inner corners, smoothest, ~3× art cost.
+
+**Recommendation: 16-tile 4-bit for v1** — cheap to generate procedurally, one-liner lookup, already kills the "uniform tile grid" failure mode. Keep the mask function pluggable for a later 47-blob upgrade. Compute autotile indices **once at level load** (levels store only solidity; visuals derive). Add variety: 2–3 alternates for the "fully surrounded" tile picked by hashed position, plus decorative grass/stones on exposed tops.
+
+## 4. Data-driven levels
+
+### 4.1 Format decision
+- **Tiled JSON**: industry default, but flat gid arrays are unreadable/undiffable for humans and AI agents, requires the external editor. Wrong default here.
+- **ASCII string maps** (one char per tile + legend + entities list): human- and AI-writable, git diffs show level edits *visually*, zero tooling. **Recommended.**
+
+Chars encode *tiles and simple fixed entities*; anything with parameters (doors, gates, enemies with patrol ranges) goes in an `entities` list in tile units. Rooms are the metroidvania unit: the world is a graph of rooms connected by doors; the camera clamps to room bounds (Itay Keren, "Scroll Back", https://www.gamedeveloper.com/design/scroll-back-the-theory-and-practice-of-cameras-in-side-scrollers).
+
+### 4.2 Worked example
+```js
+// levels/atrium.js — pure data, no logic
+export default {
+  id: "atrium",
+  legend: { "#": "rock", "-": "oneway", "^": "spikes", ".": "empty", "P": "playerSpawn", "*": "gem" },
+  map: [
+    "################################",
+    "#..*...................######..#",
+    "#.####......----.......#....^..#",
+    "A......P........----...........B",
+    "################################",
+  ],
+  entities: [
+    { type: "door", char: "A", to: "westCave",  toDoor: "B" },
+    { type: "door", char: "B", to: "bossHall",  toDoor: "A", requires: "doubleJump" },
+    { type: "checkpoint", x: 8,  y: 5 },
+    { type: "walker", x: 20, y: 6, patrol: [16, 27], speed: 40 },
+    { type: "abilityPickup", x: 29, y: 2, grants: "dash" },
+  ],
+  camera: { bounds: "room" },
+}
+```
+Conventions:
+- Loader validates: rectangular map, every char in legend, door targets exist (both directions), spawn exists. **Fail loudly at load, not at play.**
+- Doors: entering door `A` spawns you at its tile offset inward; transitions carry velocity.
+- Ability gates are doors/obstacles with `requires`; save state = granted ability flags + visited checkpoint.
+- **Adding a level = adding one data file + one line in a level index. If a milestone requires touching engine code to add content, the architecture has failed.**
+
+## 5. Engine choice
+
+**Recommendation: plain Canvas 2D, zero dependencies, ES modules, no build step.**
+- **Zero-dependency reliability**: no npm/CDN failure class; every line of engine behavior in-repo and greppable. Phaser's Arcade physics would *conflict* with the hand-tuned Celeste-style controller, which we must own anyway.
+- **Playwright testability**: expose `window.game` state, drive keydown/keyup, step the deterministic fixed-timestep loop, assert positions/flags, fail on console errors.
+- **Performance**: pixel-art renders to a small internal canvas (**320×180**, `imageSmoothingEnabled=false`, integer-scaled up). Hundreds of drawImage calls per frame is comfortably 60 fps; Canvas 2D only loses to WebGL in the many-thousands-of-sprites regime (https://github.com/Shirajuki/js-game-rendering-benchmark).
+- Single `index.html` + `<script type="module">` keeps GitHub Pages deployment trivial.
+
+## 6. Game-feel / juice checklist (with numbers)
+
+Sources: JW Nijman (Vlambeer) "The Art of Screenshake" (https://www.youtube.com/watch?v=AJdEqssNZ-U); Squirrel Eiserloh "Juicing Your Cameras With Math" (https://www.youtube.com/watch?v=tu-Qe66AvtY); Keren "Scroll Back".
+
+- **Screen shake — trauma model (Eiserloh)**: scalar `trauma ∈ [0,1]`; events *add* trauma (small hit +0.25, player hurt +0.5, boss slam +0.8); `shake = trauma²`; offset = `maxOffset × shake × noise(t)` per axis. Decay trauma linearly ~**1.3–1.8/s**. At 320×180: `maxOffset = 4–6 px`; whole-pixel offsets keep pixel art clean. Skip rotation for crisp pixels.
+- **Hit-stop**: pause the *world* (not UI) **2–3 frames (33–50 ms)** on hit/stomp, **4–6 frames (66–100 ms)** on player damage or kill blow. Celeste freezes **3 frames on every dash**. Implement as a `freezeTimer` that skips fixed updates.
+- **Particles** (1–3 px squares): landing dust 4–6 puffs 250–400 ms; jump dust 3–4; run dust 1 puff/~0.15 s at full speed; hit sparks 8–12 at 100–250 px/s with gravity, 300 ms; death burst 20–30; pickup sparkle 6–8 rising. Pool ~500; kill oldest.
+- **Squash & stretch** (scale about foot pivot, never the hitbox): jump launch **(0.7, 1.3)**, land **(1.3, 0.7)** scaled by fall speed, dash **(1.4, 0.6)** along dash axis; ease back to (1,1) in **100–150 ms** ease-out.
+- **Camera**: horizontal **lookahead 24–32 px** in facing direction via damping; exponential smoothing `pos += (target − pos) × (1 − exp(−k·dt))`, `k ≈ 6–8/s` horizontal, `k ≈ 4` vertical; **platform snapping** — only track Y when grounded or falling fast, never during jump rise; dead-zone ~16×8 px; clamp to room bounds always; on room transition slide camera 200–300 ms eased.
+- **Sound with zero binary files — ZzFX** (<1 KB 20-parameter synth; designer https://killedbyapixel.github.io/ZzFX/; music: ZzFXM https://keithclark.github.io/ZzFXM/). Vendor the ~1 KB function. Hand-rolled WebAudio recipes: **jump** = square osc 150→400 Hz over 100 ms, gain exp-decay 150 ms; **hit** = sawtooth 220→60 Hz over 80 ms + white-noise burst; **pickup** = two square blips (880 then 1320 Hz), 60 ms each. Rules: master gain ~0.3; ±5% random pitch per play; create/resume AudioContext on first input (autoplay policy).
+- Remaining Vlambeer stack: white flash frame on hits (1–2 frames), enemies knocked back 2–4 px on hit, corpses/permanence.
+
+## 7. Known AI/generic failure modes — the FORBIDDEN list
+
+1. **Floaty jump** — time-to-apex > 0.5 s, symmetric rise/fall. Must be ≤ 0.35 s with fall gravity ≥ 1.6× rise.
+2. **No coyote time / no jump buffer** — test: walk off ledge, press jump 80 ms later, must still jump. Fix: 100 ms both.
+3. **Fixed jump height** — release must shorten the jump.
+4. **Uniform tiles** — every solid tile the same sprite. Fix: 16-case autotile + top decoration + variants.
+5. **Hitbox == sprite** — player hitbox narrower than sprite (Celeste: 8×11 under ~16 px art); hazard hitboxes inset ~4 px; hitboxes in data.
+6. **Silent game / silent feel** — every player-state change needs at least one feedback channel (sound + particles + shake triad on impacts).
+7. **Static or rigid camera** — hard-locked or immobile. Fix: damped follow + lookahead + platform snapping + room clamp.
+8. **Frame-rate-dependent physics** — `pos += vel` per rAF tick breaks on 120 Hz monitors. Fix: fixed 60 Hz accumulator.
+9. **Corner bonks** — jumps cancelled by 2 px ceiling overlaps. Fix: corner correction.
+10. **Teleport collision** — full-velocity move then push-out; tunneling and seam snags. Fix: pixel-stepped axis-separated movement.
+11. **Instant-velocity movement** — no accel/decel ramps; no air-control multiplier.
+12. **Blurry pixels** — missing `image-rendering: pixelated` / `imageSmoothingEnabled=false`, non-integer scaling, fractional draw coordinates.
+13. **Death = teleport** — no death animation, no hit-stop, no respawn transition; respawn losing checkpoint state.
+14. **Everything linear** — no easing on camera, UI, transitions, squash recovery.
+
+## 8. Master-prompt / spec craft for AI-built games
+
+Sources: Addy Osmani "How to write a good spec for AI agents" (https://addyosmani.com/blog/good-spec/); Blink agentic-coding best practices.
+
+- **Spec before prompt**: a written contract — in/out scope, edge cases, acceptance criteria — beats any clever prompt.
+- **Milestone-gated builds**: numbered milestones, each ends with a *playable build* plus explicit stop-and-verify before the next.
+- **Locked constants block**: every physics/juice number in one `constants.js` marked LOCKED; feel regressions come from silent constant drift.
+- **Acceptance criteria phrased as executable checks**: "pressing jump 80 ms after walking off a ledge still jumps (Playwright test)", "level file with an unknown char throws at load with row/col", "swapping art/player.png changes visuals with zero JS edits".
+- **Include the forbidden list verbatim** as hard constraints — negative constraints catch generic-output regressions.
+- **Data/code contract stated explicitly**: "new level = new data file only; new art = new PNG only."
+- **One golden reference**: name the target feel ("Celeste-style movement, constants above") rather than adjectives.
+- **Verification is part of every milestone**: console-error-free run, deterministic sim test, screenshot review gate before "done".
+
