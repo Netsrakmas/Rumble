@@ -194,13 +194,14 @@ export class Door {
     this.def = def;
     this.locked = false;   // boss lock
     this.denyT = 0;
+    this.armed = false;    // arms once the player is clear — stops instant re-trigger on arrival
   }
   rect() { return { x: this.tx * C.TILE + 2, y: (this.ty - 1) * C.TILE, w: 12, h: 32 }; }
   update(dt, game) {
     this.denyT -= dt;
     if (game.transitionT > 0 || game.player.dead) return;
-    if (!overlaps(this.rect(), game.player.hurtbox())) { this._wasOut = true; return; }
-    if (this.locked) return;
+    if (!overlaps(this.rect(), game.player.hurtbox())) { this.armed = true; return; }
+    if (!this.armed || this.locked) return;
     const req = this.def.requires;
     if (req && !game.flags[req]) {
       if (this.denyT <= 0) {

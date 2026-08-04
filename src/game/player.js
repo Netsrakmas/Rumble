@@ -18,7 +18,7 @@ export class Player {
     this.dead = false;
 
     // timers
-    this.coyoteT = 0; this.bufferT = 0; this.varJumpT = 0;
+    this.coyoteT = 0; this.bufferT = 0;
     this.shotCd = 0; this.chargeT = 0; this.charging = false;
     this.meleeCd = 0; this.meleeT = 0;
     this.rollT = 0; this.rollCd = 0;
@@ -47,7 +47,6 @@ export class Player {
   // ---- verbs ----
   tryJump(game) {
     this.body.vy = C.jumpVy;
-    this.varJumpT = C.varJumpTime;
     this.coyoteT = 0; this.bufferT = 0;
     this.body.vx += Math.sign(this.body.vx) !== 0 ? Math.sign(this.body.vx) * 0 : 0;
     this.squash(...C.squashJump);
@@ -59,7 +58,7 @@ export class Player {
     this.body.vy = C.wallJumpVy;
     this.body.vx = C.wallJumpVx * dir;
     this.wallLockT = C.wallJumpLock; this.wallLockDir = dir;
-    this.varJumpT = 0; this.bufferT = 0; this.coyoteT = 0;
+    this.bufferT = 0; this.coyoteT = 0;
     this.facing = dir;
     this.squash(...C.squashJump);
     game.particles.burst(this.cx - dir * 4, this.cy, 4, { speed: 50, g: 60, color: PAL.ui, life: 0.25 });
@@ -232,16 +231,11 @@ export class Player {
         this.wallJump(dir, game);
       }
     }
-    // variable jump: sustain while held (Celeste VarJumpTime pattern)
-    if (this.varJumpT > 0) {
-      if (input.down('jump')) { b.vy = Math.min(b.vy, C.jumpVy); this.varJumpT -= dt; }
-      else this.varJumpT = 0;
-    }
-
-    // ---- gravity ----
+    // ---- gravity (variable jump via early-release multiplier — Pittman) ----
     let grav = C.gravity;
     if (b.vy > 0) grav *= C.fallGravMult;
-    else if (Math.abs(b.vy) < C.apexWindow && input.down('jump')) grav *= C.apexGravMult;
+    else if (!input.down('jump')) grav *= C.releaseGravMult;      // released early: cut the rise
+    else if (Math.abs(b.vy) < C.apexWindow) grav *= C.apexGravMult; // held at apex: float a beat
     b.vy += grav * dt;
     let maxFall = input.down('down') && !this.grounded ? C.fastFall : C.maxFall;
     if (wallSliding) {
@@ -305,7 +299,7 @@ export class Player {
       if (b.vy < 0 && cornerCorrectUp(b, room, C.cornerCorrection)) {
         // nudged around the corner, keep rising
       } else {
-        b.vy = 0; this.varJumpT = 0;
+        b.vy = 0;
       }
     }
     if (hitY >= 0) this.grounded = room.groundedOn(b.rect());

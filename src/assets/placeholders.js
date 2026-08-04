@@ -147,18 +147,17 @@ function h2(x, y) { let n = x * 374761393 + y * 668265263; n = (n ^ (n >> 13)) *
 function drawSoilTile(g, ox, oy, mask, variant = 0) {
   // mask bits: 1=N present, 2=E, 4=S, 8=W (neighbor solid)
   const N = mask & 1, E = mask & 2, S = mask & 4, W = mask & 8;
-  R(g, ox, oy, 16, 16, PAL.leafDark);
-  R(g, ox + 1, oy + 1, 14, 14, PAL.leafMid);
-  if (N && E && S && W) R(g, ox, oy, 16, 16, PAL.leafMid);
+  // seamless body — shading only on EXPOSED edges so joined tiles read as one mass
+  R(g, ox, oy, 16, 16, PAL.leafMid);
   // interior speckle
   for (let i = 0; i < 4; i++) {
     const rx = Math.floor(h2(mask * 7 + i, variant * 13 + i) * 12) + 2;
     const ry = Math.floor(h2(variant * 5 + i, mask * 11 + i) * 12) + 2;
     R(g, ox + rx, oy + ry, 1, 1, variant === 1 && i < 2 ? PAL.farFoliage : PAL.leafDark);
   }
-  if (!W) R(g, ox, oy, 1, 16, PAL.leafDark);
-  if (!E) R(g, ox + 15, oy, 1, 16, PAL.leafDark);
-  if (!S) { R(g, ox, oy + 15, 16, 1, PAL.leafDark); R(g, ox + 2, oy + 13, 12, 1, PAL.leafDark); }
+  if (!W) { R(g, ox, oy, 1, 16, PAL.leafDark); R(g, ox + 1, oy, 1, 16, PAL.leafDark); }
+  if (!E) { R(g, ox + 15, oy, 1, 16, PAL.leafDark); R(g, ox + 14, oy, 1, 16, PAL.leafDark); }
+  if (!S) { R(g, ox, oy + 15, 16, 1, PAL.leafDark); R(g, ox + 1, oy + 13, 14, 2, PAL.leafDark); }
   if (!N) { // grass lip — mandatory on every exposed top
     R(g, ox, oy, 16, 1, PAL.outline);
     R(g, ox, oy + 1, 16, 2, PAL.leafLight);

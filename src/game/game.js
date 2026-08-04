@@ -147,6 +147,9 @@ export class Game {
           if (!this.bossesDead.has(bossKey)) {
             this.boss = new BullhornBeetle(px2, py2);
             this.boss.roomKey = bossKey;
+          } else if (!this.flags.trophy) {
+            // boss beaten but trophy never collected — respawn it (no softlock)
+            this.entities.push(new Trophy(px2 + 20, py2 + 16));
           }
           break;
         }
