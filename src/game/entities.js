@@ -8,18 +8,21 @@ import { sfx } from '../engine/audio.js';
 import { overlaps } from '../engine/physics.js';
 
 export class Ticket {
-  constructor(tx, ty, key) {
+  // key = persistence id ("room:tx,ty") for placed tickets; null for enemy
+  // drops, which are transient and renewable (enemies respawn per room entry)
+  constructor(tx, ty, key = null) {
     this.x = tx * C.TILE + 8; this.y = ty * C.TILE + 8;
-    this.key = key; // persistence id "room:tx,ty"
-    this.t = (tx * 7 + ty * 3) % 10;
+    this.key = key;
+    this.t = (Math.abs(tx * 7 + ty * 3)) % 10;
     this.done = false;
   }
+  static atPixel(px, py) { return new Ticket((px - 8) / C.TILE, (py - 8) / C.TILE, null); }
   rect() { return { x: this.x - 5, y: this.y - 5, w: 10, h: 10 }; }
   update(dt, game) {
     this.t += dt;
     if (!this.done && overlaps(this.rect(), game.player.hurtbox())) {
       this.done = true;
-      game.collect(this.key);
+      if (this.key) game.collect(this.key);
       game.tickets++;
       game.particles.burst(this.x, this.y, 7, { speed: 70, g: -60, color: PAL.dewHalo, life: 0.35, add: true });
       sfx.ticket();

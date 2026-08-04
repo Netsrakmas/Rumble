@@ -237,6 +237,9 @@ async function main() {
       return { n0, n1 };
     });
     report('combat: pellets kill enemies', enemyKill.n1 < enemyKill.n0, `${enemyKill.n0} -> ${enemyKill.n1}`);
+    const drops = await page.evaluate(() =>
+      window.game.entities.filter(e => e.constructor.name === 'Ticket' && !e.key).length);
+    report('combat: kills drop tickets (renewable income)', drops > 0, `${drops} drops`);
 
     // ---------- 11. shop: buy Burr Boots ----------
     await step('setTickets', 20);
@@ -408,6 +411,27 @@ async function main() {
     });
     report('assets: all PNG sheets present at exact manifest geometry', assets.pngOk && assets.sizes.length === 0, assets.sizes.join(','));
     report('assets: procedural fallback generators still valid', assets.fallbackOk);
+
+    // every manifest sprite frame must contain actual pixels — catches frames
+    // drawn at wrong sheet coordinates (the invisible-thorns bug class)
+    const emptyFrames = await page.evaluate(async () => {
+      const { MANIFEST } = await import('/src/assets/manifest.js');
+      const { generateSheet } = await import('/src/assets/placeholders.js');
+      const bad = [];
+      const sheets = {};
+      for (const [name, def] of Object.entries(MANIFEST.sheets)) sheets[name] = generateSheet(name, def);
+      for (const [sname, s] of Object.entries(MANIFEST.sprites)) {
+        const g = sheets[s.sheet].getContext('2d');
+        s.frames.forEach(([fx, fy, fw, fh], i) => {
+          const data = g.getImageData(fx, fy, fw, fh).data;
+          let opaque = 0;
+          for (let p = 3; p < data.length; p += 4) if (data[p] > 0) opaque++;
+          if (opaque < fw * fh * 0.05) bad.push(`${sname}#${i}`);
+        });
+      }
+      return bad;
+    });
+    report('assets: no empty/misplaced sprite frames', emptyFrames.length === 0, emptyFrames.join(', '));
 
     // ---------- 17. phone-landscape fit: canvas fills the screen ----------
     await page.setViewportSize({ width: 851, height: 393 }); // typical phone landscape

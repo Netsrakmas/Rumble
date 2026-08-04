@@ -181,15 +181,19 @@ function genTiles(def) {
   R(g, 32, 17, 16, 3, PAL.leafLight);
   R(g, 33, 20, 14, 2, PAL.leafMid);
   R(g, 34, 22, 3, 1, PAL.leafDark); R(g, 43, 22, 3, 1, PAL.leafDark);
-  // thorns
+  // thorns — bright bramble; must read instantly as danger. NOTE: the frame
+  // rect is (48,16)-(64,32); earlier versions drew into row 0 by mistake,
+  // which left this tile fully transparent (the "invisible spikes" bug).
+  R(g, 48, 29, 16, 3, PAL.outline);                 // bramble base
+  R(g, 49, 28, 4, 2, PAL.outline); R(g, 58, 28, 5, 2, PAL.outline);
   for (let i = 0; i < 4; i++) {
     const bx = 48 + i * 4;
-    R(g, bx + 1, 10, 2, 6, PAL.outline);
-    R(g, bx + 1, 8, 2, 4, PAL.hazard);
-    R(g, bx + 1, 6, 1, 2, PAL.hazard);
-    R(g, bx + 1, 5, 1, 1, '#f57d4a');
+    R(g, bx, 24, 4, 6, PAL.outline);                // spike body outline
+    R(g, bx + 1, 20, 2, 10, PAL.hazard);            // tall red spike
+    R(g, bx + 1, 18, 1, 3, PAL.hazard);
+    R(g, bx + 1, 17, 1, 2, '#f57d4a');              // hot tip
+    R(g, bx + 2, 21, 1, 2, '#ffffff');              // glint
   }
-  R(g, 48, 15, 16, 1, PAL.outline);
   // vine top / mid / end
   const vine = (x, cap) => {
     R(g, x + 7, 16, 2, 16, PAL.leafDark);

@@ -5,6 +5,7 @@ import { C, PAL } from '../constants.js';
 import { Body, moveX, moveY, overlaps } from '../engine/physics.js';
 import { drawSprite, Anim } from '../engine/sprites.js';
 import { sfx } from '../engine/audio.js';
+import { Ticket } from './entities.js';
 
 // soft additive halo behind every enemy so they pop on any background at any
 // screen size — added after live playtest ("invisible enemy" reports)
@@ -48,6 +49,9 @@ class EnemyBase {
     game.camera.addTrauma(0.15);
     game.particles.burst(this.cx, this.cy, 14, { speed: 130, color: PAL.enemy, life: 0.4 });
     game.particles.burst(this.cx, this.cy, 6, { speed: 60, color: PAL.ui, life: 0.3 });
+    // every kill drops a ticket — renewable income so Burr Boots are always
+    // reachable by fighting, not just by platforming (playtest fix)
+    game.entities.push(Ticket.atPixel(this.cx, this.cy));
     sfx.kill();
   }
 }
