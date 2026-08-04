@@ -1,9 +1,9 @@
 # Rumble — Dewdrop Dynasty-style metroidvania, Level 1
 
-**Phase:** 4 — test: DONE (ready for 5 — ship, on request)
+**Phase:** 5 — ship: LIVE
 **Stack:** plain Canvas 2D, vanilla ES modules, zero deps, zero build step, 320×180 internal res
 **Repo:** github.com/Netsrakmas/Rumble
-**Live:** not deployed
+**Live:** https://netsrakmas.github.io/Rumble/
 **Updated:** 2026-08-04
 
 ## One-liner
@@ -15,7 +15,7 @@ A finished, polished Level 1 of a 2D pixel-art metroidvania with the mechanics o
 - 2 build — done. All 6 milestones in PROMPT.md ticked. Full verb set (run/jump/gun-jump/charge/melee/roll/crawl/wall-jump), systems (hp/checkpoints/tickets/shop/gates), Level 1 (6 rooms) + boss + Level 2 stub, juice pass (shake/hit-stop/particles/parallax/squash/WebAudio SFX).
 - 3 art — placeholder-quality done: 5 PNG sheets committed in src/assets/art/ (generated from placeholders.js via tools/export-art.mjs), fully swappable via manifest indirection. A hand-painted pass (art skill / ComfyUI+Aseprite) remains open as a future upgrade.
 - 4 test — done. Playwright harness test/run-tests.mjs: 35/35, four consecutive green runs. Covers boot, feel (coyote/buffer/variable jump), gun-jump economy, doors (incl. re-trigger regression), damage/death/respawn, shop, wall verbs, roll/crawl, boss flow, level exit, loader validation, asset contract, perf (60 fps, worst frame 16.8 ms), console cleanliness. Not covered: audio output correctness (WebAudio not assertable headless), long-session soak.
-- 5 ship — not started (deploy to GitHub Pages on request via ship skill)
+- 5 ship — done 2026-08-04. Live at https://netsrakmas.github.io/Rumble/ (Pages branch mode serving gh-pages, auto-enabled by the gh-pages push after the Actions enablement path failed on token permissions). pages.yml force-syncs gh-pages from the dev branch on every push. Pre-flight passed: relative paths only, lowercase filenames, no secrets/APIs/dev leftovers, viewport+touch-action set. Verified: GitHub deployment status "success" with environment URL; sandbox egress policy blocks *.github.io so an in-browser load of the live URL was NOT possible from here — user should hard-reload the URL once as the final check. Known limitation: keyboard-only (no touch controls yet).
 
 ## Open questions
 - (none — spec locked)
