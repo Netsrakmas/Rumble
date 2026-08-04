@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RUMBLE — sprite sheet exporter</title>
+<style>
+  body { background: #2e222f; color: #c7dcd0; font-family: monospace; padding: 20px; }
+  h1 { color: #f9c22b; }
+  .sheet { margin: 24px 0; }
+  canvas { image-rendering: pixelated; border: 1px solid #484a77; background:
+    repeating-conic-gradient(#3a2d3c 0% 25%, #322635 0% 50%) 0 0 / 16px 16px; }
+  a.dl { color: #8ff8e2; margin-right: 16px; }
+  label { color: #91db69; margin-left: 8px; }
+</style>
+</head>
+<body>
+<h1>RUMBLE — sprite sheet exporter</h1>
+<p>Each sheet below is the current in-game art (PNG from <code>src/assets/art/</code>
+if present, otherwise the procedural placeholder). Download, paint over at the
+exact same geometry, save into <code>src/assets/art/&lt;name&gt;.png</code>, reload the game.
+Toggle the grid to see manifest frame rects.</p>
+<div id="sheets"></div>
+<script type="module">
+import { MANIFEST } from '../src/assets/manifest.js';
+import { generateSheet } from '../src/assets/placeholders.js';
+
+function loadImage(src) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = rej;
+    img.src = src;
+  });
+}
+
+const root = document.getElementById('sheets');
+
+for (const [name, def] of Object.entries(MANIFEST.sheets)) {
+  const holder = document.createElement('div');
+  holder.className = 'sheet';
+  const title = document.createElement('h3');
+  title.textContent = `${name}.png — ${def.w}×${def.h}`;
+  holder.appendChild(title);
+
+  const base = document.createElement('canvas');
+  base.width = def.w; base.height = def.h;
+  const bctx = base.getContext('2d');
+
+  const display = document.createElement('canvas');
+  display.width = def.w; display.height = def.h;
+  display.style.width = (def.w * 3) + 'px';
+  display.style.height = (def.h * 3) + 'px';
+  const dctx = display.getContext('2d');
+
+  let showGrid = true;
+  function redraw() {
+    dctx.clearRect(0, 0, def.w, def.h);
+    dctx.drawImage(base, 0, 0);
+    if (showGrid) {
+      dctx.strokeStyle = 'rgba(143,248,226,0.6)';
+      dctx.lineWidth = 0.5;
+      for (const [sname, s] of Object.entries(MANIFEST.sprites)) {
+        if (s.sheet !== name) continue;
+        for (const [fx, fy, fw, fh] of s.frames) dctx.strokeRect(fx + 0.25, fy + 0.25, fw - 0.5, fh - 0.5);
+      }
+    }
+  }
+
+  (async () => {
+    try {
+      const img = await loadImage('../' + def.src);
+      bctx.drawImage(img, 0, 0);
+      title.textContent += ' (custom PNG)';
+    } catch {
+      bctx.drawImage(generateSheet(name, def), 0, 0);
+      title.textContent += ' (placeholder)';
+    }
+    redraw();
+    dl.href = base.toDataURL('image/png');
+  })();
+
+  const dl = document.createElement('a');
+  dl.className = 'dl';
+  dl.download = name + '.png';
+  dl.textContent = `download ${name}.png`;
+
+  const toggle = document.createElement('input');
+  toggle.type = 'checkbox'; toggle.checked = true;
+  toggle.onchange = () => { showGrid = toggle.checked; redraw(); };
+  const tlabel = document.createElement('label');
+  tlabel.textContent = 'frame grid';
+
+  holder.appendChild(display);
+  holder.appendChild(document.createElement('br'));
+  holder.appendChild(dl);
+  holder.appendChild(toggle);
+  holder.appendChild(tlabel);
+  root.appendChild(holder);
+}
+</script>
+</body>
+</html>
