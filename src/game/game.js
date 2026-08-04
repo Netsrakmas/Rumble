@@ -508,8 +508,13 @@ export class Game {
       drawText(ctx, (sel ? '> ' : '') + o, C.VIEW_W / 2, 96 + i * 10, sel ? PAL.dewHalo : PAL.bgLight, { align: 'center' });
     });
 
-    drawText(ctx, 'MOVE: ARROWS/WASD  JUMP: Z/SPACE', C.VIEW_W / 2, 130, PAL.bgLight, { align: 'center' });
-    drawText(ctx, 'SHOOT: X  MELEE: C  ROLL: SHIFT  CRAWL: DOWN', C.VIEW_W / 2, 140, PAL.bgLight, { align: 'center' });
+    if (this.input.gamepadActive) {
+      drawText(ctx, 'GAMEPAD: STICK/D-PAD MOVE  A: JUMP', C.VIEW_W / 2, 130, PAL.bgLight, { align: 'center' });
+      drawText(ctx, 'X: SHOOT  Y: MELEE  B: ROLL  DOWN: CRAWL', C.VIEW_W / 2, 140, PAL.bgLight, { align: 'center' });
+    } else {
+      drawText(ctx, 'MOVE: ARROWS/WASD  JUMP: Z/SPACE  (GAMEPAD OK!)', C.VIEW_W / 2, 130, PAL.bgLight, { align: 'center' });
+      drawText(ctx, 'SHOOT: X  MELEE: C  ROLL: SHIFT  CRAWL: DOWN', C.VIEW_W / 2, 140, PAL.bgLight, { align: 'center' });
+    }
     drawText(ctx, 'AIM DOWN + SHOOT IN AIR: GUN-JUMP', C.VIEW_W / 2, 152, PAL.leafHi, { align: 'center' });
   }
 }

@@ -62,6 +62,29 @@ async function main() {
     s = await S();
     report('movement: running right moves player', s.x > x0 + 30, `dx=${(s.x - x0).toFixed(1)}`);
 
+    // ---------- 3b. gamepad: stub the Gamepad API, drive with a fake pad ----------
+    const pad = await page.evaluate(async () => {
+      const fake = { connected: true, buttons: Array.from({ length: 17 }, () => ({ pressed: false })), axes: [0, 0] };
+      const orig = navigator.getGamepads?.bind(navigator);
+      Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [fake] });
+      window.__test.teleport('descent', 17, 10); // open floor, clear run-up
+      await new Promise(r => setTimeout(r, 400));
+      const xa = window.__test.state().x;
+      fake.buttons[15].pressed = true;             // d-pad right
+      await new Promise(r => setTimeout(r, 400));
+      const xb = window.__test.state().x;
+      fake.buttons[15].pressed = false;
+      fake.buttons[0].pressed = true;              // A = jump (edge)
+      await new Promise(r => setTimeout(r, 100));
+      const vy = window.__test.state().vy;
+      fake.buttons[0].pressed = false;
+      await new Promise(r => setTimeout(r, 600));
+      Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: orig || (() => []) });
+      return { moved: xb - xa, vy };
+    });
+    report('gamepad: d-pad moves player', pad.moved > 20, `dx=${pad.moved.toFixed(1)}`);
+    report('gamepad: A button jumps', pad.vy < -100, `vy=${pad.vy?.toFixed(0)}`);
+
     // ---------- 4. variable jump: tap vs hold ----------
     async function jumpHeight(holdMs) {
       await step('teleport', 'descent', 4, 10);
