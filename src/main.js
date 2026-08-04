@@ -15,13 +15,35 @@ vctx.imageSmoothingEnabled = false;
 const sctx = screen.getContext('2d');
 
 function fit() {
-  const scale = Math.max(1, Math.floor(Math.min(innerWidth / C.VIEW_W, innerHeight / C.VIEW_H)));
-  screen.width = C.VIEW_W * scale;
-  screen.height = C.VIEW_H * scale;
+  // fill as much of the window as possible while keeping 16:9; backing store
+  // in device pixels so phones (dpr 2-3) stay crisp under pixelated scaling
+  const scale = Math.max(1, Math.min(innerWidth / C.VIEW_W, innerHeight / C.VIEW_H));
+  const cssW = Math.floor(C.VIEW_W * scale), cssH = Math.floor(C.VIEW_H * scale);
+  const dpr = window.devicePixelRatio || 1;
+  screen.style.width = cssW + 'px';
+  screen.style.height = cssH + 'px';
+  screen.width = Math.round(cssW * dpr);
+  screen.height = Math.round(cssH * dpr);
   sctx.imageSmoothingEnabled = false;
 }
 addEventListener('resize', fit);
+addEventListener('orientationchange', () => setTimeout(fit, 100));
+document.addEventListener('fullscreenchange', () => setTimeout(fit, 100));
 fit();
+
+// fullscreen button (shown on touch devices via CSS) — needs a user gesture,
+// and gamepad input doesn't count as one, so it has to be a tap target
+const fsbtn = document.getElementById('fsbtn');
+fsbtn.addEventListener('click', async () => {
+  try {
+    const wrap = document.getElementById('wrap');
+    await (wrap.requestFullscreen?.() ?? wrap.webkitRequestFullscreen?.());
+    await screen_orientation_lock();
+  } catch { /* iOS Safari: no element fullscreen — Add to Home Screen instead */ }
+});
+async function screen_orientation_lock() {
+  try { await window.screen.orientation?.lock?.('landscape'); } catch { /* unsupported */ }
+}
 
 const input = new Input(() => initAudio());
 

@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#2e222f">
 <title>RUMBLE</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%232e222f'/><rect x='4' y='5' width='8' height='7' fill='%23f9c22b'/><rect x='6' y='5' width='1' height='7' fill='%2345293f'/><rect x='9' y='5' width='1' height='7' fill='%2345293f'/></svg>">
 <style>
@@ -19,10 +23,30 @@
     image-rendering: pixelated;
     image-rendering: crisp-edges;
   }
+  #fsbtn {
+    position: fixed; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right));
+    width: 40px; height: 40px; z-index: 10;
+    background: rgba(46,34,47,0.75); color: #8ff8e2;
+    border: 1px solid #484a77; border-radius: 6px;
+    font: 20px/38px monospace; text-align: center;
+    cursor: pointer; user-select: none; -webkit-user-select: none;
+    display: none;
+  }
+  @media (pointer: coarse) { #fsbtn { display: block; } }
+  :fullscreen #fsbtn, :-webkit-full-screen #fsbtn { display: none; }
+  #rotate {
+    position: fixed; inset: 0; z-index: 20;
+    background: #2e222f; color: #c7dcd0;
+    display: none; align-items: center; justify-content: center;
+    font: 16px monospace; text-align: center;
+  }
+  @media (pointer: coarse) and (orientation: portrait) { #rotate { display: flex; } }
 </style>
 </head>
 <body>
 <div id="wrap"><canvas id="screen"></canvas></div>
+<div id="fsbtn" title="Fullscreen">&#x26F6;</div>
+<div id="rotate">TURN YOUR PHONE SIDEWAYS<br>&#x1F504;&#x1F4F1;</div>
 <script type="module" src="src/main.js"></script>
 </body>
 </html>

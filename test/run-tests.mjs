@@ -393,7 +393,25 @@ async function main() {
     report('assets: all PNG sheets present at exact manifest geometry', assets.pngOk && assets.sizes.length === 0, assets.sizes.join(','));
     report('assets: procedural fallback generators still valid', assets.fallbackOk);
 
-    // ---------- 17. console clean ----------
+    // ---------- 17. phone-landscape fit: canvas fills the screen ----------
+    await page.setViewportSize({ width: 851, height: 393 }); // typical phone landscape
+    await settle(300);
+    const fitCheck = await page.evaluate(() => {
+      const c = document.getElementById('screen');
+      return {
+        cw: c.clientWidth, ch: c.clientHeight,
+        vw: innerWidth, vh: innerHeight,
+        fsbtn: !!document.getElementById('fsbtn'),
+      };
+    });
+    const fills = fitCheck.ch >= fitCheck.vh * 0.95 || fitCheck.cw >= fitCheck.vw * 0.95;
+    report('mobile: canvas fills landscape phone screen', fills,
+      `canvas ${fitCheck.cw}x${fitCheck.ch} in ${fitCheck.vw}x${fitCheck.vh}`);
+    report('mobile: fullscreen button present', fitCheck.fsbtn);
+    await page.setViewportSize({ width: 960, height: 540 });
+    await settle(200);
+
+    // ---------- 18. console clean ----------
     report('console: zero errors across entire run', errors.length === 0, errors.slice(0, 3).join(' | '));
 
   } catch (err) {
