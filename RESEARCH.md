@@ -339,3 +339,77 @@ Sources: Addy Osmani "How to write a good spec for AI agents" (https://addyosman
 - **One golden reference**: name the target feel ("Celeste-style movement, constants above") rather than adjectives.
 - **Verification is part of every milestone**: console-error-free run, deterministic sim test, screenshot review gate before "done".
 
+---
+
+# Addendum 3 (2026-08-04) — Dewdrop Dynasty Mechanics Dossier
+
+## 0. Corrections and constraints
+1. **Dewdrop Dynasty is a Steam PC/Mac/Linux game** (app 1444080), released **July 21, 2026**, built in **Godot** by **Goodgis / Firith Studio** over ~6 years of public YouTube devlogs; Kickstarter-funded. Not Roblox.
+2. **No fan wiki exists yet** (~2 weeks post-launch), so granular numbers (HP, tile distances, damage) are not publicly documented anywhere. Every unverified item below is flagged and paired with an anchor-game equivalent.
+3. Research assembled from ~20 targeted search queries; direct page fetches were blocked by the sandbox proxy.
+
+## 1. What the game is
+- **Premise:** You are **Poe, a small bee warrior who lost their wings** and must fight back home to the **Hive**, exploring an interconnected insect-scale world called **Underland** (setting brand: "Dewdrop").
+- **Tone:** bright and funny — press kit: "the charm and humor of **Paper Mario**, the tight action of **Hollow Knight**." Marketing promises "cheese mines, power struggles, mecha crabs, and lots and lots of combat."
+- **Reception:** 83% positive (184 reviews). Praise: movement feel, soundtrack, art, personality. Criticism: control scheme, boss pacing (no wind-ups), map clarity, backtracking, launch bugs, short length ($19.99 → $11.99 price cut).
+
+## 2. Player mechanics (verification status noted)
+| Mechanic | Detail |
+|---|---|
+| **Run** | Fast-paced, "smooth and fluid". |
+| **Jump** | Single jump, deliberately modest ("not substantial") — forces reliance on gun-jump. Anchor: Cave Story short hop, ~2–3 tiles. |
+| **Gun-jump (signature)** | Fire the pistol **downward**; recoil launches upward. Replaces double/triple jump — each downward shot gives a modest lift, chainable. Downward shots **also deal damage below** — traversal and combat share one resource. Canonical anchor: **Downwell gunboots** (sharp upward velocity reset per shot, magazine resets on landing). Cap 2–3 boosted lifts per airtime for the "double/triple jump" read. |
+| **Pistol-whip** | Close-range melee with the gun ("gun-jumping, pistol-whipping action"). |
+| **Charge shot** | Hold fire to charge a stronger shot. |
+| **Roll / dodge** | Gamepad B; dodging in combat + movement verb (i-frames unverified). |
+| **Crawl** | Confirmed verb — low-tunnel gating. |
+| **Dash** | Confirmed verb; possibly the roll under another name. |
+| **Wall jump** | Confirmed; original's "feels backwards" complaint → rebuild should use clean Celeste-style wall jump. |
+| Unlockables | New guns/items that alter weapons, jump-height item, **hats** (cosmetic, some small stat changes), **Spore Shroom** (boss reward or boss name — conflicting). No official ability list exists. |
+
+## 3. Health, saves, death, currency
+- **Currency: "Tickets"** (verified). Collected in world, redeemed at **vending machines** for abilities, consumables, vanity items/hats — headline press-kit feature.
+- **Health: unverified.** Anchor: discrete pips top-left (Hollow Knight masks / Cave Story hearts), 3–5 starting HP.
+- **Checkpoints exist** (form undocumented). Death = warp to last save, fast enough that speedrunners exploit it ("Death Warp" category); **no evidence of currency loss** — low-punishment respawn.
+
+## 4. Combat
+- Pistol shots in aimable directions; **downward fire doubles as the jump** — combat and traversal continuously trade off. Encounters as choreography: "fire to interrupt an animation, gun-jump for height and momentum, string attacks into a short combo before you land."
+- Melee pistol-whip, charge shot for burst, roll as defensive verb.
+- The gun-jump IS the pogo (Downwell/Cave Story logic, not HK nail-pogo).
+- **Boss-design lesson:** players complain bosses have "little to no wind-up time." Rebuild keeps gun-jump choreography but adds **readable wind-ups**.
+- Early trash mobs die in 1–3 shots; contact damage ~1 pip.
+
+## 5. Enemies (early game)
+- First-area enemies "basic, easy" — patrol-and-contact-damage fodder. **Mecha crabs** = marquee mid-game type. **Bull-like charging creature** = first boss/miniboss (unconfirmed name). Bosses confirmed: **Webulix** (spider), **Bonsai Beetle**, Final Boss.
+- Anchor roster for area 1 (HK Crossroads mold): a walker (aphid/weevil), a slow flyer (gnat), a lobbed-projectile plant/mushroom — each 1–3 shots, generous telegraphs.
+
+## 6. World structure
+- Interconnected metroidvania, diverse biomes; the land is **Underland**; goal = the **Hive**. First area = green/garden-toned surface zone (from trailer imagery). Map with custom player markers. Standard ability-gating (crawl tunnels, wall-jump shafts, jump-height gates).
+
+## 7. First ~15 minutes (from demo coverage)
+1. Intro: Poe loses wings, stranded with a pistol; humor lands immediately.
+2. Starting-zone platforming: rooms with "layers and suspended platforms just out of reach for a single jump" — **the level geometry teaches the gun-jump**; no formal tutorial (a complaint — rebuild should add light prompts).
+3. Simple enemies throughout; demo climax: one tough boss with a standout theme.
+4. Demo ≈ 35 min of content; speedrun 6:37.
+5. Complaints to FIX in rebuild: opening difficulty spikes, left/right shoot-jump asymmetry, no coyote/buffer polish.
+
+## 8. Feel consensus (no hard numbers exist publicly)
+- "Fast-paced," "movement feels so nice and fluid, the gun mechanic really brings it all together."
+- Raw jump ~2–3 tiles (Cave Story anchor); gun-jump lift smaller than jump but chainable (Downwell anchor).
+- Feel target: "fluid but slightly loose indie" — but rebuild adds Celeste forgiveness (coyote, buffer, corner correction), because their absence was the original's top feel complaint.
+
+## 9. UI / HUD
+- Controls (verified): gamepad A jump / B roll / X shoot; keyboard was J shoot / K dodge, disliked → rebuild with sane defaults (Z/X/C or WASD+JKL) and document them on screen.
+- HUD unverified. Anchor: top-left discrete health pips + ticket counter with ticket icon; Downwell-style ammo pips under health; minimal retro pixel font. Inventory screen and pause map exist in original.
+
+## 10. Verification ledger
+| Claim | Status |
+|---|---|
+| Steam game by Goodgis/Firith, Godot, 2026-07-21 | Verified |
+| Poe = wingless bee returning to Hive; Underland | Verified |
+| Gun-jump = downward recoil lift, ammo/traversal tradeoff | Verified (mechanism); shots-per-airtime unverified → Downwell anchor |
+| Roll, crawl, dash, wall jump, charge shot, pistol-whip | Verified as existing |
+| Tickets + vending machines + hats | Verified (press kit) |
+| Webulix, Bonsai Beetle, Spore Shroom | Names verified, roles partial |
+| Health display, save form, HP/damage numbers | Unverifiable — anchors supplied |
+
