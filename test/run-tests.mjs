@@ -365,6 +365,22 @@ async function main() {
     await settle(800);
     await page.screenshot({ path: join(shots, '06-level2.png') });
 
+    // ---------- 14b. ticket economy: boots affordable before the shaft ----------
+    const economy = await page.evaluate(async () => {
+      const { LEVELS } = await import('/src/levels/index.js');
+      const pre = ['descent', 'terraces', 'cellar', 'atrium'];
+      let n = 0;
+      for (const r of LEVELS.level1.rooms) {
+        if (!pre.includes(r.id)) continue;
+        for (const row of r.map) n += (row.match(/\*/g) || []).length;
+      }
+      const boots = LEVELS.level1.rooms.find(r => r.id === 'atrium')
+        .entities.find(e => e.type === 'vending').items.find(i => i.id === 'burrBoots');
+      return { tickets: n, cost: boots.cost };
+    });
+    report('economy: pre-boss tickets comfortably cover Burr Boots', economy.tickets >= economy.cost + 6,
+      `${economy.tickets} placed vs ${economy.cost} cost`);
+
     // ---------- 15. level loader validation ----------
     const loaderThrows = await page.evaluate(async () => {
       const { World } = await import('/src/game/world.js');

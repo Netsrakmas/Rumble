@@ -6,6 +6,20 @@ import { Body, moveX, moveY, overlaps } from '../engine/physics.js';
 import { drawSprite, Anim } from '../engine/sprites.js';
 import { sfx } from '../engine/audio.js';
 
+// soft additive halo behind every enemy so they pop on any background at any
+// screen size — added after live playtest ("invisible enemy" reports)
+export function drawEnemyGlow(ctx, x, y, r = 12) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.16;
+  const g = ctx.createRadialGradient(x, y, 2, x, y, r);
+  g.addColorStop(0, PAL.enemy);
+  g.addColorStop(1, 'rgba(207,101,127,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  ctx.restore();
+}
+
 class EnemyBase {
   constructor(x, y, w, h, hp) {
     this.body = new Body(x, y, w, h);
@@ -63,6 +77,7 @@ export class Weevil extends EnemyBase {
     this.anim.update(dt);
   }
   render(ctx, cam) {
+    drawEnemyGlow(ctx, this.cx - cam.ox(), this.cy - cam.oy());
     drawSprite(ctx, 'enemy.weevil', this.anim.frame(), this.cx - cam.ox(), this.body.bottom - cam.oy() - 1, { flip: this.dir > 0, white: this.flashT > 0 });
   }
 }
@@ -102,6 +117,7 @@ export class Gnat extends EnemyBase {
     this.anim.update(dt);
   }
   render(ctx, cam) {
+    drawEnemyGlow(ctx, this.cx - cam.ox(), this.cy - cam.oy(), 10);
     drawSprite(ctx, 'enemy.gnat', this.anim.frame(), this.cx - cam.ox(), this.body.bottom - cam.oy() + 3, { flip: this.body.vx > 0, white: this.flashT > 0 });
   }
 }
@@ -118,9 +134,11 @@ export class Sporespitter extends EnemyBase {
     this.timer -= dt;
     const p = game.player;
     const dist = Math.abs(p.cx - this.cx);
+    const dy = Math.abs(p.cy - this.cy);
     if (this.state === 'idle') {
       this.anim.set('enemy.spitter.idle');
-      if (this.timer <= 0 && dist < 8 * C.TILE && !p.dead) {
+      // vertical gate stops offscreen bombardment (view half-height ≈ 5.6 tiles)
+      if (this.timer <= 0 && dist < 8 * C.TILE && dy < 5.5 * C.TILE && !p.dead) {
         this.state = 'windup'; this.timer = 0.4; // readable telegraph
         this.anim.set('enemy.spitter.windup', true);
       }
@@ -140,6 +158,7 @@ export class Sporespitter extends EnemyBase {
     this.anim.update(dt);
   }
   render(ctx, cam) {
+    drawEnemyGlow(ctx, this.cx - cam.ox(), this.cy - cam.oy(), 14);
     drawSprite(ctx, this.anim.name, this.anim.frame(), this.cx - cam.ox(), this.body.bottom - cam.oy(), { white: this.flashT > 0 });
   }
 }

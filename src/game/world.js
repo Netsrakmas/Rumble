@@ -191,6 +191,13 @@ export class Room {
         drawTile(ctx, 'tiles.oneway', 0, px, py);
       } else if (g === T.THORNS) {
         drawTile(ctx, 'tiles.thorns', 0, px, py);
+        // pulsing hazard shimmer — thorns must never be missable (playtest fix)
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.10 + 0.06 * Math.sin(t * 3 + tx);
+        ctx.fillStyle = '#e83b3b';
+        ctx.fillRect(px, py + 4, C.TILE, 12);
+        ctx.restore();
       }
     }
     // deco (sway via 1px offset on a slow, per-instance-offset clock)

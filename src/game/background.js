@@ -98,6 +98,7 @@ export function drawBackground(ctx, cam, room, t) {
 export function drawForeground(ctx, cam, room, t) {
   const seed = room.id.length * 31 + room.id.charCodeAt(0);
   const ox = cam.x * 1.15, oy = cam.y * 1.15 - cam.y; // slight vertical drift
+  ctx.globalAlpha = 0.8; // translucent so occluders can never fully hide an enemy
   ctx.fillStyle = PAL.bgDeep;
   const SP = 150;
   const first = Math.floor(ox / SP) - 1;
@@ -119,5 +120,6 @@ export function drawForeground(ctx, cam, room, t) {
       ctx.fill();
     }
   }
+  ctx.globalAlpha = 1;
   ctx.drawImage(getVignette(), 0, 0);
 }

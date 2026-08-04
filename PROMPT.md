@@ -69,7 +69,8 @@ maxRun=150  runAccel=1600  runReduce=900  airMult=0.65
 gravity=1070  fallGravMult=1.7  apexGravMult=0.5  apexWindow=60  maxFall=320  fastFall=440
 jumpVy=-300  releaseGravMult=2.5  jumpHBoost=30
 coyote=0.100  jumpBuffer=0.100  cornerCorrection=8
-gunjumpVy=-240  gunjumpCharges=3  shotSpeed=340  shotCooldown=0.14  chargeTime=0.45
+gunjumpVy=-260  gunjumpCharges=3  shotSpeed=340  shotCooldown=0.14  chargeTime=0.45
+(gunjumpVy retuned -240 → -260 on 2026-08-04 live playtest: practical chain height fell short of placed platforms)
 meleeRange=18  meleeCooldown=0.25  meleeKnockback=180
 rollSpeed=260  rollTime=0.30  rollIFrames=0.22  rollCooldown=0.40
 crawlSpeed=60  wallSlideMax=110  wallJumpVx=260  wallJumpVy=-340  wallJumpLock=0.16

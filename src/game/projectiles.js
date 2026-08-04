@@ -50,15 +50,19 @@ export class Projectiles {
   render(ctx, cam) {
     for (const p of this.list) {
       drawSprite(ctx, p.sprite, 0, p.x - cam.ox(), p.y - cam.oy());
-      // additive glow trail for player shots
+      // additive glow: green trail on player shots, rose halo on enemy shots
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
       if (p.friendly) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 0.25;
         ctx.fillStyle = PAL.leafHi;
         ctx.fillRect(Math.round(p.x - p.vx * 0.012 - cam.ox()) - 1, Math.round(p.y - p.vy * 0.012 - cam.oy()) - 1, 2, 2);
-        ctx.restore();
+      } else {
+        ctx.globalAlpha = 0.30;
+        ctx.fillStyle = PAL.enemy;
+        ctx.fillRect(Math.round(p.x - cam.ox()) - 4, Math.round(p.y - cam.oy()) - 4, 8, 8);
       }
+      ctx.restore();
     }
   }
 }

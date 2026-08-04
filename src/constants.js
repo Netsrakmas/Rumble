@@ -13,7 +13,7 @@ export const C = {
   coyote: 0.100, jumpBuffer: 0.100, cornerCorrection: 8,
 
   // gun-jump & shooting
-  gunjumpVy: -240, gunjumpCharges: 3,
+  gunjumpVy: -260, gunjumpCharges: 3, // -240 → -260 after live playtest: chains fell short of placed platforms
   shotSpeed: 340, shotCooldown: 0.14, chargeTime: 0.45,
   chargeShotSpeed: 300, gunjumpChargeMult: 1.25,
 
