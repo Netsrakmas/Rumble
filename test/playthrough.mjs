@@ -61,6 +61,7 @@ const log = await page.evaluate(async () => {
         const s = st();
         if (room && s.room !== room) return true; // walked through a door — done
         if (s.state === 'dead') { say(`DIED near x=${Math.round(s.x)} in ${s.room}`); return false; }
+        if (s.state !== 'play') return true; // menu/end screen took over — stop pressing keys!
         const nd = s.x < x ? 'ArrowRight' : 'ArrowLeft';
         if (nd !== d) { K(d, false); d = nd; K(d, true); }
         if (Math.abs(s.x - lastX) < 1.5) {
@@ -78,14 +79,17 @@ const log = await page.evaluate(async () => {
   }
 
   async function crawlTo(x, timeout = 12000) {
-    const d = st().x < x ? 'ArrowRight' : 'ArrowLeft';
+    let d = st().x < x ? 'ArrowRight' : 'ArrowLeft';
     K('ArrowDown', true); K(d, true);
     const t0 = performance.now();
     try {
-      while (Math.abs(st().x - x) > 6) {
+      while (Math.abs(st().x - x) > 8) {
         await sleep(80);
-        if (st().state === 'dead') { say('DIED crawling'); return false; }
-        if (performance.now() - t0 > timeout) { say(`STALL crawling to ${x} at ${Math.round(st().x)}`); return false; }
+        const s = st();
+        if (s.state === 'dead') { say('DIED crawling'); return false; }
+        const nd = s.x < x ? 'ArrowRight' : 'ArrowLeft'; // knockback may fling us past
+        if (nd !== d) { K(d, false); d = nd; K(d, true); }
+        if (performance.now() - t0 > timeout) { say(`STALL crawling to ${x} at ${Math.round(s.x)}`); return false; }
       }
       return true;
     } finally { K(d, false); K('ArrowDown', false); }
@@ -100,8 +104,10 @@ const log = await page.evaluate(async () => {
     K(dirKey, false);
   }
 
-  // opposing-wall chimney climb until standing above targetFeet
-  async function chimneyClimb(targetFeet, timeout = 25000) {
+  // opposing-wall chimney climb until at/above targetFeet.
+  // finishDir 'left'/'right': near the top, ride the final wall jump in that
+  // direction and hold it until landing (how a human exits onto a side ledge).
+  async function chimneyClimb(targetFeet, timeout = 25000, finishDir = null) {
     const p = window.game.player;
     let dir = 'ArrowRight';
     K(dir, true);
@@ -112,17 +118,44 @@ const log = await page.evaluate(async () => {
         await sleep(40);
         const s = st();
         if (s.state === 'dead') { say('DIED in chimney'); return false; }
-        if (s.grounded && s.y + 14 <= targetFeet) return true;
+        if (s.grounded && s.y + 14 <= targetFeet + 4) return true;
+        if (!finishDir && s.y + 14 <= targetFeet - 15) return true;
+        if (s.grounded && p.wallDir === 0) { await tapZ(140); continue; } // grounded stall: relaunch
         if (p.wallDir !== 0) {
+          const nearTop = s.y + 14 < targetFeet + 60;
+          const launchWall = finishDir === 'left' ? 1 : -1; // jump FROM the opposite wall
+          if (finishDir && nearTop && p.wallDir === launchWall) {
+            // the finishing move: jump and hold toward the ledge until we land
+            K(dir, false);
+            const fd = finishDir === 'left' ? 'ArrowLeft' : 'ArrowRight';
+            K(fd, true);
+            K('KeyZ', true); await sleep(80); K('KeyZ', false);
+            const tl = performance.now();
+            while (!st().grounded && performance.now() - tl < 1500) await sleep(40);
+            K(fd, false);
+            K(dir, true);
+            if (st().grounded && st().y + 14 <= targetFeet + 4) return true;
+            continue; // missed — resume climbing
+          }
           K('KeyZ', true); await sleep(80); K('KeyZ', false);
           K(dir, false);
           dir = dir === 'ArrowRight' ? 'ArrowLeft' : 'ArrowRight';
           K(dir, true);
         }
       }
+      if (st().grounded && st().y + 14 <= targetFeet + 15) return true;
       say(`CHIMNEY TIMEOUT at feet=${Math.round(st().y + 14)}`);
       return false;
     } finally { K(dir, false); }
+  }
+
+  // doors only arm after one non-overlapping frame — step CLEAR first, then
+  // cross the trigger. Returns whether targetRoom was entered.
+  async function enterDoorVia(clearX, crossX, targetRoom) {
+    const from = st().room;
+    await walkTo(clearX, { timeout: 6000, hop: true });
+    await walkTo(crossX, { room: from, timeout: 6000, hop: true });
+    return await waitRoom(targetRoom, 5000);
   }
 
   const fail = (m) => { say('FAIL: ' + m); return out; };
@@ -178,18 +211,27 @@ const log = await page.evaluate(async () => {
   say('Burr Boots purchased');
   K('Escape', true); await sleep(60); K('Escape', false);
   await sleep(250);
-  // climb the shaft and enter the top door — retried like a human would
+  // climb the shaft and enter the top door — retried like a human would.
+  // NOTE: the climb exit can fling us THROUGH the door mid-air (that's a
+  // success!), so every stage checks whether we already arrived.
   let entered = false;
   for (let attempt = 0; attempt < 4 && !entered; attempt++) {
+    if (st().room === 'ascent' || await waitRoom('ascent', 1200)) { entered = true; break; }
     if (st().y + 14 > 120) { // back on the floor: re-enter and re-climb
       if (!await walkTo(23 * T, { hop: true })) return fail('shaft approach');
       if (!await crawlTo(26 * T)) return fail('shaft entry crawl');
-      if (!await chimneyClimb(100)) { say(`shaft climb attempt ${attempt + 1} failed`); continue; }
+      // the shaft is capped by a oneway platform — climb up through it, land on top
+      if (!await chimneyClimb(84)) { say(`shaft climb attempt ${attempt + 1} failed`); continue; }
       say('atrium shaft climbed');
     }
+    if (st().room === 'ascent') { entered = true; break; }
+    say(`a${attempt}: post-climb x=${Math.round(st().x)} feet=${Math.round(st().y + 14)} g=${st().grounded} room=${st().room}`);
     if (st().x > 23.5 * T) await runJump('ArrowLeft', 300); // wall top -> ledge
-    await walkTo(21 * T + 4, { room: 'atrium', hop: true, timeout: 6000 });
-    entered = await waitRoom('ascent', 4000);
+    if (st().room === 'ascent') { entered = true; break; }
+    say(`a${attempt}: post-hop x=${Math.round(st().x)} feet=${Math.round(st().y + 14)} g=${st().grounded} room=${st().room}`);
+    if (st().y + 14 > 84) continue; // not on the ledge — go around again
+    entered = await enterDoorVia(23 * T, 21 * T - 2, 'ascent');
+    say(`a${attempt}: post-enter x=${Math.round(st().x)} feet=${Math.round(st().y + 14)} room=${st().room} entered=${entered}`);
   }
   if (!entered) return fail('ascent transition');
 
@@ -198,10 +240,19 @@ const log = await page.evaluate(async () => {
   if (!await walkTo(14 * T, { hop: true })) return fail('ascent chimney approach');
   if (!await chimneyClimb(100)) return fail('ascent chimney climb');
   say('ascent chimney climbed');
-  if (!await walkTo(23 * T)) return fail('ascent summit walk');
-  await runJump('ArrowRight', 300);                    // onto the door ledge
-  if (!await walkTo(26 * T + 4, { room: 'ascent' })) return fail('ascent door');
-  if (!await waitRoom('bossHollow')) return fail('boss transition');
+  let inBoss = false;
+  for (let attempt = 0; attempt < 3 && !inBoss; attempt++) {
+    if (st().y + 14 > 120) { // fell back down — re-climb
+      if (!await walkTo(14 * T, { hop: true })) return fail('ascent re-approach');
+      if (!await chimneyClimb(100)) continue;
+    }
+    if (st().x < 13 * T) await runJump('ArrowRight', 320); // exited on the left mass: hop the mouth
+    if (st().y + 14 > 120) continue;                       // fell in — go around
+    if (!await walkTo(23 * T, { timeout: 6000 })) continue;
+    await runJump('ArrowRight', 300);                  // onto the door ledge
+    inBoss = st().room === 'bossHollow' || await enterDoorVia(28 * T, 25 * T, 'bossHollow');
+  }
+  if (!inBoss) return fail('boss transition');
 
   // --- 6. BULLHORN BEETLE: prove real pellets land, then drain via damage model
   say('room 6: boss hollow');
@@ -210,7 +261,11 @@ const log = await page.evaluate(async () => {
   await sleep(1600); // roar
   if (!st().bossAwake) return fail('boss did not wake');
   const hp0 = st().bossHp;
-  for (let i = 0; i < 6 && st().bossHp === hp0; i++) { await shootOnce(); await sleep(200); }
+  for (let i = 0; i < 12 && st().bossHp === hp0; i++) {
+    const dirK = window.game.boss.cx > st().x ? 'ArrowRight' : 'ArrowLeft'; // face the boss
+    K(dirK, true); await sleep(50); K(dirK, false);
+    await shootOnce(); await sleep(250);
+  }
   if (st().bossHp >= hp0) return fail('pellets do not damage the boss');
   say('real pellet damage confirmed; finishing via damage model');
   await page_finishBoss();
@@ -220,9 +275,13 @@ const log = await page.evaluate(async () => {
     while (g.boss && !g.boss.dead && guard-- > 0) g.boss.onHit(g, 1, 0);
   }
   await sleep(1600);
-  // trophy: walk under the pedestal spot
-  if (!await walkTo(23 * T + 4, { hop: true })) return fail('trophy walk');
-  await sleep(600);
+  // trophy drops where the boss died — find it and walk onto it
+  for (let attempt = 0; attempt < 3 && !st().flags.trophy; attempt++) {
+    const tr = window.game.entities.find(e => e.constructor.name === 'Trophy' && !e.done);
+    if (!tr) break;
+    await walkTo(tr.x, { hop: true, timeout: 8000 });
+    await sleep(700);
+  }
   if (!st().flags.trophy) return fail('trophy not collected');
   say('trophy collected');
   if (!await walkTo(34 * T + 4, { room: 'bossHollow' })) return fail('exit door walk');
@@ -230,9 +289,15 @@ const log = await page.evaluate(async () => {
 
   // --- 7. LEVEL 2: to the demo-end door
   say('level 2: cheese mines');
-  if (!await walkTo(26 * T + 4, { hop: true, shoot: true, room: 'mineEntry' })) return fail('demo door walk');
-  const t0 = performance.now();
-  while (st().state !== 'demoEnd' && performance.now() - t0 < 8000) await sleep(100);
+  // walk to the demo door; on a death the local checkpoint respawns us here — retry
+  for (let attempt = 0; attempt < 3 && st().state !== 'demoEnd'; attempt++) {
+    await walkTo(23 * T, { hop: true, timeout: 10000 }); // clear of the door
+    say(`d${attempt}: cleared x=${Math.round(st().x)} y=${Math.round(st().y)} state=${st().state} room=${st().room}`);
+    await walkTo(28 * T, { room: 'mineEntry', timeout: 8000 }); // cross the trigger
+    say(`d${attempt}: crossed x=${Math.round(st().x)} y=${Math.round(st().y)} state=${st().state} trans=${window.game.transitionT.toFixed(2)}`);
+    const t0 = performance.now();
+    while (st().state !== 'demoEnd' && performance.now() - t0 < 5000) await sleep(150);
+  }
   if (st().state !== 'demoEnd') return fail('demo end screen not reached');
   say('DEMO END REACHED');
   say(`COMPLETE — deaths=${window.game.stats.deaths} time=${Math.round(window.game.stats.playT)}s tickets=${st().tickets}`);

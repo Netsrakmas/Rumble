@@ -11,6 +11,7 @@ import { makeEnemy } from './enemies.js';
 import { BullhornBeetle } from './boss.js';
 import { Ticket, GunPickup, Checkpoint, Vending, Sign, Door, Trophy, DewHeal } from './entities.js';
 import { drawBackground, drawForeground } from './background.js';
+import { drawSprite, drawTile } from '../engine/sprites.js';
 import { drawHud, drawShop } from './hud.js';
 import { drawText } from '../engine/text.js';
 import { loadSave, writeSave, clearSave, getSettings, setSetting } from '../engine/save.js';
@@ -34,6 +35,9 @@ export class Game {
 
     this.hitstopT = 0;
     this.time = 0;
+    this.hpFlashT = 0;      // HUD: flash the just-lost pip
+    this.ticketBounceT = 0; // HUD: bounce the counter on pickup
+    this._prevHp = C.playerHP;
     this.message = null; this.messageT = 0;
     this.levelToast = ''; this.levelToastT = 0;
     this.transitionT = 0; this.transitionPhase = null; this.pendingDoor = null;
@@ -307,6 +311,12 @@ export class Game {
     this.time += dt;
     this.messageT -= dt;
     this.levelToastT -= dt;
+    this.hpFlashT -= dt;
+    this.ticketBounceT -= dt;
+    if (this.player) {
+      if (this.player.hp < this._prevHp) this.hpFlashT = 0.5;
+      this._prevHp = this.player.hp;
+    }
 
     switch (this.state) {
       case 'title': this.stepTitle(dt); break;
@@ -427,6 +437,8 @@ export class Game {
       if (!b.awake && Math.abs(p.cx - b.cx) < 9 * C.TILE) {
         b.wake(this);
         playMusic('boss');
+        this.levelToast = 'BULLHORN BEETLE';
+        this.levelToastT = 2.5;
         for (const ent of this.entities) if (ent instanceof Door) ent.locked = true;
         // physical blockers on locked doors
         this.room.extraSolids = this.entities.filter(e => e instanceof Door && e.locked).map(d => d.rect());
@@ -567,22 +579,33 @@ export class Game {
     }
     this.particles.render(ctx);
 
-    drawText(ctx, 'RUMBLE', C.VIEW_W / 2, 38, PAL.bee, { align: 'center', scale: 4 });
-    drawText(ctx, 'A BEE WITHOUT WINGS. A GUN FULL OF PEAS.', C.VIEW_W / 2, 70, PAL.ui, { align: 'center' });
+    // grass stage with the cast on it
+    for (let x = 0; x < C.VIEW_W; x += 16) drawTile(ctx, 'tiles.soil', 14, x, C.VIEW_H - 16);
+    const wob = Math.round(Math.sin(this.time * 1.5) * 2);
+    drawSprite(ctx, 'player.idle', Math.floor(this.time * 8) % 4, C.VIEW_W / 2 - 92, C.VIEW_H - 17);
+    const wx = (this.time * 20) % (C.VIEW_W + 60) - 30; // weevil wanders through
+    drawSprite(ctx, 'enemy.weevil', Math.floor(this.time * 6) % 2, wx, C.VIEW_H - 18, { flip: true });
+
+    // logo with drop shadow, floating gently
+    drawText(ctx, 'RUMBLE', C.VIEW_W / 2 + 2, 30 + wob + 2, PAL.outline, { align: 'center', scale: 4 });
+    drawText(ctx, 'RUMBLE', C.VIEW_W / 2, 30 + wob, PAL.bee, { align: 'center', scale: 4 });
+    drawText(ctx, 'A BEE WITHOUT WINGS. A GUN FULL OF PEAS.', C.VIEW_W / 2, 62, PAL.ui, { align: 'center' });
+    drawText(ctx, 'STEAM SHOWCASE DEMO', C.VIEW_W / 2, 72, PAL.beeAccent, { align: 'center' });
 
     const opts = this.hasSave ? ['CONTINUE', 'NEW GAME'] : ['START'];
     opts.forEach((o, i) => {
       const sel = i === this.titleSel;
-      drawText(ctx, (sel ? '> ' : '') + o, C.VIEW_W / 2, 96 + i * 10, sel ? PAL.dewHalo : PAL.bgLight, { align: 'center' });
+      drawText(ctx, (sel ? '> ' : '') + o, C.VIEW_W / 2, 92 + i * 10, sel ? PAL.dewHalo : PAL.bgLight, { align: 'center' });
     });
 
     if (this.input.gamepadActive) {
-      drawText(ctx, 'GAMEPAD: STICK/D-PAD MOVE  A: JUMP', C.VIEW_W / 2, 130, PAL.bgLight, { align: 'center' });
-      drawText(ctx, 'X: SHOOT  Y: MELEE  B: ROLL  DOWN: CRAWL', C.VIEW_W / 2, 140, PAL.bgLight, { align: 'center' });
+      drawText(ctx, 'GAMEPAD: STICK/D-PAD MOVE  A: JUMP', C.VIEW_W / 2, 122, PAL.bgLight, { align: 'center' });
+      drawText(ctx, 'X: SHOOT  Y: MELEE  B: ROLL  DOWN: CRAWL', C.VIEW_W / 2, 132, PAL.bgLight, { align: 'center' });
     } else {
-      drawText(ctx, 'MOVE: ARROWS/WASD  JUMP: Z/SPACE  (GAMEPAD OK!)', C.VIEW_W / 2, 130, PAL.bgLight, { align: 'center' });
-      drawText(ctx, 'SHOOT: X  MELEE: C  ROLL: SHIFT  CRAWL: DOWN', C.VIEW_W / 2, 140, PAL.bgLight, { align: 'center' });
+      drawText(ctx, 'MOVE: ARROWS/WASD  JUMP: Z/SPACE  (GAMEPAD OK!)', C.VIEW_W / 2, 122, PAL.bgLight, { align: 'center' });
+      drawText(ctx, 'SHOOT: X  MELEE: C  ROLL: SHIFT  CRAWL: DOWN', C.VIEW_W / 2, 132, PAL.bgLight, { align: 'center' });
     }
-    drawText(ctx, 'AIM DOWN + SHOOT IN AIR: GUN-JUMP', C.VIEW_W / 2, 152, PAL.leafHi, { align: 'center' });
+    drawText(ctx, 'AIM DOWN + SHOOT IN AIR: GUN-JUMP', C.VIEW_W / 2, 144, PAL.leafHi, { align: 'center' });
+    drawText(ctx, 'DEMO V1.0', C.VIEW_W - 4, C.VIEW_H - 10, PAL.bgLight, { align: 'right' });
   }
 }

@@ -329,6 +329,19 @@ export class Player {
     else this.anim.set('player.idle');
     this.anim.update(dt);
 
+    // run dust: a puff every ~0.15s at full sprint (Vlambeer checklist)
+    if (this.grounded && Math.abs(b.vx) > 120 && !this.crawling) {
+      this._runDustT = (this._runDustT || 0) + dt;
+      if (this._runDustT > 0.15) {
+        this._runDustT = 0;
+        game.particles.spawn({
+          x: this.cx - this.facing * 5, y: b.bottom - 1,
+          vx: -this.facing * 20, vy: -15, g: -20, drag: 3,
+          size: 1, color: PAL.ui, life: 0.25, alpha: 0.7,
+        });
+      }
+    }
+
     // squash ease-back
     const e = 1 - Math.exp(-dt / C.squashEase * 3);
     this.sqX += (1 - this.sqX) * e;

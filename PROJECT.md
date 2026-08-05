@@ -6,6 +6,16 @@
 **Live:** https://netsrakmas.github.io/Rumble/
 **Updated:** 2026-08-04
 
+## Polish pass log (2026-08-05, "one level, maximally polished" decision)
+- Scope locked: single-level demo. Level 2 is a short epilogue corridor (enemy removed, local checkpoint added) into the demo-end screen.
+- Title screen: shadowed floating logo, animated Rumble + wandering weevil on a grass stage, showcase tag, version.
+- Feel/HUD: lost-pip flash, ticket-counter bounce, low-HP heartbeat vignette, run dust, checkpoint toast, boss name card.
+- Atmosphere: per-room darkness (`dark` field in room data) — cellar/boss darker, per style bible region shifts.
+- Secret: the Dew Grotto (hidden high door in cellar, gun-jump chain to reach; 6-ticket cache).
+- Route hardening via the bot: shaft exit is now a pass-through oneway cap (trivial, satisfying), ascent door ledge flush with summit, summit harassers relocated, thorn ambush at ascent top removed, boots 10 with floor-line ticket economy (bot collects 14-15 naturally).
+- Bot found a UI bug class too: its own key-mash skipped the demo-end screen via title-continue — input helpers now stop when the game leaves play state.
+- Verified: playthrough bot 4/4 consecutive PASS, harness 43/43 ×2.
+
 ## Demo-readiness log (2026-08-05, Steam showcase target)
 - Completability PROVEN: test/playthrough.mjs bot beats the demo start→end with only human inputs (run/jump/crawl/gun-jump/shop/wall-jump); found+fixed: 3-tall intro block, natural-route ticket famine (floor-line tickets added, boots 12→10), atrium shaft's 1-tile exit gap (ledge now meets the shaft lip).
 - Music: 4 chiptune themes (title/garden/boss/mines) via WebAudio step sequencer, switching on level/boss events.

@@ -9,6 +9,7 @@ export default {
   rooms: [
     {
       id: 'mineEntry',
+      dark: 0.3,
       map: [
         "##############################",
         "##############################",
@@ -24,10 +25,10 @@ export default {
         "##############################",
       ],
       entities: [
+        { type: 'checkpoint', x: 5, y: 9 },
         { type: 'sign', x: 8, y: 9, text: 'LEVEL 1 COMPLETE!\nYOU ARE THE BEES KNEES' },
         { type: 'sign', x: 20, y: 9, text: 'THE CHEESE MINES AWAIT\nIN THE FULL GAME...' },
         { type: 'door', char: 'B', to: 'level:demoEnd' },
-        { type: 'weevil', x: 16, y: 8 },
       ],
     },
   ],

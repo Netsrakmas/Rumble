@@ -28,8 +28,26 @@ function drawPip(ctx, x, y, filled) {
 export function drawHud(ctx, game) {
   const p = game.player;
 
-  // health pips
-  for (let i = 0; i < C.playerHP; i++) drawPip(ctx, 5 + i * 9, 5, i < p.hp);
+  // health pips — the just-lost pip flashes white
+  for (let i = 0; i < C.playerHP; i++) {
+    drawPip(ctx, 5 + i * 9, 5, i < p.hp);
+    if (i === p.hp && game.hpFlashT > 0 && Math.floor(game.hpFlashT * 14) % 2 === 0) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(5 + i * 9 + 1, 6, 5, 6);
+    }
+  }
+
+  // low-HP heartbeat vignette
+  if (p.hp === 1 && !p.dead) {
+    ctx.save();
+    ctx.globalAlpha = 0.10 + 0.06 * Math.sin(game.time * 7);
+    const g = ctx.createRadialGradient(C.VIEW_W / 2, C.VIEW_H / 2, C.VIEW_H * 0.45, C.VIEW_W / 2, C.VIEW_H / 2, C.VIEW_W * 0.7);
+    g.addColorStop(0, 'rgba(232,59,59,0)');
+    g.addColorStop(1, PAL.hazard);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, C.VIEW_W, C.VIEW_H);
+    ctx.restore();
+  }
 
   // gun-jump charges (amber pellets) — only once the gun exists
   if (game.flags.gun) {
@@ -41,9 +59,10 @@ export function drawHud(ctx, game) {
     }
   }
 
-  // tickets
-  drawSprite(ctx, 'props.ticket', 0, C.VIEW_W - 26, 12);
-  drawText(ctx, String(game.tickets), C.VIEW_W - 18, 6, PAL.ui);
+  // tickets — bounces on pickup
+  const tb = game.ticketBounceT > 0 ? Math.round(Math.sin(game.ticketBounceT * 20) * 2) : 0;
+  drawSprite(ctx, 'props.ticket', 0, C.VIEW_W - 26, 12 - tb);
+  drawText(ctx, String(game.tickets), C.VIEW_W - 18, 6 - tb, PAL.ui);
 
   // boss bar
   if (game.boss && game.boss.awake && !game.boss.dead) {

@@ -75,12 +75,13 @@ export default {
     // 3. BRAMBLE CELLAR — crawl tunnels, thorns, gnats, hidden tickets.
     {
       id: 'cellar',
+      dark: 0.35,
       map: [
         "############################################",
         "############################################",
         "#..........................................#",
-        "#...................*............*....+....#",
-        "#..................---.....................#",
+        "#.C.................*............*....+....#",
+        "###................---.....................#",
         "#..........................................#",
         "#.................---......................#",
         "#......########........##########..........#",
@@ -92,6 +93,7 @@ export default {
       entities: [
         { type: 'door', char: 'A', to: 'terraces', toDoor: 'B' },
         { type: 'door', char: 'B', to: 'atrium', toDoor: 'A' },
+        { type: 'door', char: 'C', to: 'dewGrotto', toDoor: 'A' },
         { type: 'sign', x: 4, y: 9, text: 'LOW CEILING!\nHOLD DOWN' },
         { type: 'gnat', x: 12, y: 4 },
         { type: 'gnat', x: 30, y: 3 },
@@ -104,13 +106,14 @@ export default {
     // checkpoint, and the wall-jump shaft the boots unlock.
     {
       id: 'atrium',
+      dark: 0.15,
       map: [
         "##############################",
         "##############################",
         "#............................#",
-        "#....................B.......#",
-        "#...................#####....#",
         "#............................#",
+        "#....................B.......#",
+        "#...................#####---.#",
         "#.......................#...##",
         "#....---................#...##",
         "#.......................#...##",
@@ -139,8 +142,8 @@ export default {
             unlockText: 'ACORN CAP!\nLOOKING SHARP.' },
         ] },
         { type: 'sign', x: 22, y: 19, text: 'THE SHAFT CLIMBS\nTO THE HOLLOW' },
-        { type: 'gnat', x: 8, y: 8 },
-        { type: 'gnat', x: 16, y: 12 },
+        { type: 'gnat', x: 6, y: 7 },
+        { type: 'gnat', x: 10, y: 12 },
       ],
     },
 
@@ -152,9 +155,9 @@ export default {
         "##############################",
         "##############################",
         "#............................#",
+        "#............................#",
         "#.........................B..#",
         "#........................#####",
-        "#..^^^.......................#",
         "#############...##############",
         "#############...##############",
         "#############...##############",
@@ -180,8 +183,32 @@ export default {
         { type: 'door', char: 'A', to: 'atrium', toDoor: 'B' },
         { type: 'door', char: 'B', to: 'bossHollow', toDoor: 'A' },
         { type: 'sign', x: 8, y: 23, text: 'WALL-JUMP THE CHIMNEY!\nSOMETHING SNORTS UP THERE' },
-        { type: 'gnat', x: 8, y: 3 },
-        { type: 'spitter', x: 6, y: 4 },
+        { type: 'gnat', x: 20, y: 19 },
+        { type: 'spitter', x: 3, y: 4 },
+      ],
+    },
+
+    // ------------------------------------------------------------------
+    // SECRET: THE DEW GROTTO — reward for gun-jump-chaining up to the odd
+    // high door in the cellar. Pure bonus, off the critical path.
+    {
+      id: 'dewGrotto',
+      dark: 0.1,
+      map: [
+        "####################",
+        "####################",
+        "#..*....*....*.....#",
+        "#..................#",
+        "#....*....*....*...#",
+        "#......+...........#",
+        "#..................#",
+        "#A.................#",
+        "####################",
+        "####################",
+      ],
+      entities: [
+        { type: 'door', char: 'A', to: 'cellar', toDoor: 'C' },
+        { type: 'sign', x: 10, y: 6, text: 'YOU FOUND THE DEW GROTTO!\nDONT TELL THE WEEVILS' },
       ],
     },
 
@@ -189,6 +216,7 @@ export default {
     // 6. BULLHORN HOLLOW — boss arena. Doors lock while the beetle lives.
     {
       id: 'bossHollow',
+      dark: 0.3,
       map: [
         "####################################",
         "####################################",

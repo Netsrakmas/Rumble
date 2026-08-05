@@ -30,11 +30,13 @@ function lerpHex(a, b, t) {
 
 export function drawBackground(ctx, cam, room, t) {
   const seed = room.id.length * 131 + room.id.charCodeAt(0) * 7;
+  // per-room darkness (style bible: palette shifts mark regions) — pure data
+  const dark = room.def?.dark || 0;
 
   // sky bands
   const BANDS = 6;
   for (let i = 0; i < BANDS; i++) {
-    ctx.fillStyle = lerpHex(PAL.bgLight, PAL.bgMid, i / (BANDS - 1));
+    ctx.fillStyle = lerpHex(lerpHex(PAL.bgLight, PAL.bgMid, i / (BANDS - 1)), PAL.bgDeep, dark);
     ctx.fillRect(0, Math.floor(i * C.VIEW_H / BANDS), C.VIEW_W, Math.ceil(C.VIEW_H / BANDS) + 1);
   }
 

@@ -24,6 +24,7 @@ export class Ticket {
       this.done = true;
       if (this.key) game.collect(this.key);
       game.tickets++;
+      game.ticketBounceT = 0.3;
       game.particles.burst(this.x, this.y, 7, { speed: 70, g: -60, color: PAL.dewHalo, life: 0.35, add: true });
       sfx.ticket();
     }
@@ -128,6 +129,7 @@ export class Checkpoint {
       game.setCheckpoint(this);
       this.flashT = 0.3;
       game.player.hp = C.playerHP;
+      game.showMessage('CHECKPOINT!', 1.4);
       game.particles.burst(this.x, this.y - 14, 8, { speed: 60, g: -80, color: PAL.dewHalo, life: 0.5, add: true });
       sfx.checkpoint();
     }
