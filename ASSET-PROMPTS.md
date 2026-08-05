@@ -32,6 +32,69 @@ solid background you can delete easily.
 
 ---
 
+## Workflow A (RECOMMENDED START): world concept first, then extract
+
+Generate ONE image that contains the whole world — it locks style, lighting
+and palette for every asset simultaneously, and every later element is derived
+from it in the same chat, which is how you keep everything consistent.
+Don't literally crop sprites out of the big image (overlaps, off-grid, mixed
+angles) — instead ask ChatGPT to RE-RENDER each element isolated, referencing
+the approved concept.
+
+**A1. The master concept — a fake game screenshot** (forces game-correct
+side-view, terrain, parallax; this is the image you approve or re-roll):
+
+> [style header from below]
+> A complete SCREENSHOT MOCKUP of this 2D pixel-art metroidvania, 16:9,
+> side-view platformer perspective, as if captured mid-game. Scene: "The
+> Fallen Garden" at dew-dawn. Show, clearly separated and all in the same
+> style: RUMBLE the hero (small round bumblebee, huge cute head, big white
+> eyes, tiny wing stubs, warm-orange scarf, holding a leaf-green pea-pod
+> pistol) standing on leafy terrain tiles with a bright grass lip; a round
+> rose-pink weevil enemy with a long snout patrolling; a tiny rose-pink gnat
+> with glowing mint wings hovering; a grumpy rose-pink mushroom turret on a
+> stem; a patch of tall hazard-red bramble spikes; a big glossy dewdrop
+> checkpoint on a leaf pedestal; a cute overgrown vending machine with a
+> glowing window; a dark mossy garden door; small pale-mint arcade tickets
+> floating as pickups; hanging vines and bell flowers; dawn-indigo sky with
+> silhouetted giant plants in the background parallax layers, drifting mist;
+> health drops and a ticket counter as UI in the corners. Everything chunky,
+> outlined, readable — no element overlapping another.
+
+Re-roll until you LOVE this one image. It becomes the project's visual law.
+
+**A2. The asset-sheet companion** (same chat, right after approval):
+
+> Using exactly the style, palette and character designs of the screenshot
+> above, draw an ASSET SHEET: the same elements laid out separately in neat
+> rows on a plain solid gray background, each isolated with space around it —
+> hero (front-facing idle and running side view), weevil, gnat, mushroom
+> turret, boss (a bull-sized rose-pink rhinoceros beetle with a huge pale
+> horn), checkpoint dewdrop, vending machine, door, pedestal + pea-pod
+> pistol, ticket, acorn-cap hat, sign, thorn patch, one terrain tile shown
+> repeated 3x3, vine, bell flower, grass tuft, rock, dewdrop.
+
+**A3. The extraction loop** (one element at a time, same chat):
+
+> From the asset sheet above, re-draw ONLY the [ELEMENT] as a single isolated
+> pixel-art game sprite, [W]x[H] pixels displayed at large scale with crisp
+> square pixels, same design, same palette, facing [right/left], feet on the
+> bottom edge, plain gray background, no anti-aliasing, nothing else in frame.
+
+Target sizes for A3 (from the manifest): hero 24×24 · tiles 16×16 ·
+checkpoint 16×24 · vending 24×32 · door 16×32 · ticket 8×8 · weevil/gnat
+16×16 · spitter 16×24 · boss 48×32 (facing LEFT).
+
+Then continue at step 3 of the pipeline below (downscale → template → save).
+Keep the whole thing in ONE chat session — that's what keeps ChatGPT's
+designs consistent between the concept and every extraction.
+
+Bonus: the approved A1 concept is also the perfect style-reference image to
+upload to Retro Diffusion or any other tool later — the concept, not the
+tool, becomes the source of truth.
+
+---
+
 ## The style header — paste this at the top of EVERY prompt
 
 > Pixel art for a whimsical neo-retro metroidvania game, in the spirit of
