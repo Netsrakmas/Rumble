@@ -21,7 +21,7 @@ export class Player {
     this.coyoteT = 0; this.bufferT = 0;
     this.shotCd = 0; this.chargeT = 0; this.charging = false;
     this.meleeCd = 0; this.meleeT = 0;
-    this.rollT = 0; this.rollCd = 0;
+    this.rollT = 0; this.rollCd = 0; this.rollBufferT = 0;
     this.iframesT = 0; this.hurtT = 0;
     this.wallLockT = 0; this.wallLockDir = 0;
     this.crawling = false;
@@ -151,7 +151,7 @@ export class Player {
 
     // timers
     this.coyoteT -= dt; this.bufferT -= dt; this.shotCd -= dt;
-    this.meleeCd -= dt; this.meleeT -= dt; this.rollCd -= dt;
+    this.meleeCd -= dt; this.meleeT -= dt; this.rollCd -= dt; this.rollBufferT -= dt;
     this.iframesT -= dt; this.hurtT -= dt; this.wallLockT -= dt;
     this.gunjumpFlashT -= dt; this.dropT -= dt;
 
@@ -174,8 +174,10 @@ export class Player {
     // forced crawl under low ceilings persists until headroom exists
     if (this.crawling && !input.down('down')) this.crawlSet(false, game);
 
-    // ---- roll ----
-    if (!stunned && !rolling && !this.crawling && this.grounded && this.rollCd <= 0 && input.pressed('roll')) {
+    // ---- roll (buffered like jump — a press just before landing still rolls) ----
+    if (input.pressed('roll')) this.rollBufferT = C.jumpBuffer;
+    if (!stunned && !rolling && !this.crawling && this.grounded && this.rollCd <= 0 && this.rollBufferT > 0) {
+      this.rollBufferT = 0;
       this.rollT = C.rollTime; this.rollCd = C.rollCooldown + C.rollTime;
       this.iframesT = Math.max(this.iframesT, C.rollIFrames);
       b.vx = this.facing * C.rollSpeed;

@@ -276,13 +276,52 @@ async function main() {
     report('wall: slide caps fall speed <= 115', wall.slideVy > 0 && wall.slideVy <= 115, `vy=${wall.slideVy?.toFixed(0)}`);
     report('wall: wall jump kicks away+up', wall.jumpVx < -100 && wall.jumpVy < -150, `vx=${wall.jumpVx?.toFixed(0)} vy=${wall.jumpVy?.toFixed(0)}`);
 
+    // ---------- 14a. route: the ascent chimney is actually climbable ----------
+    // scripted wall-jump climb (regression guard for level-geometry edits)
+    const climb = await page.evaluate(async () => {
+      window.__test.grant('burrBoots');
+      window.__test.teleport('ascent', 14, 22);
+      await new Promise(r => setTimeout(r, 400));
+      const p = window.game.player;
+      let dir = 'ArrowRight';
+      window.__test.key(dir, true);
+      window.__test.key('KeyZ', true);
+      await new Promise(r => setTimeout(r, 150));
+      window.__test.key('KeyZ', false);
+      let jumps = 0;
+      const t0 = performance.now();
+      while (performance.now() - t0 < 15000) {
+        await new Promise(r => setTimeout(r, 40));
+        const st = window.__test.state();
+        if (st.grounded && st.y + 14 <= 100) break; // standing on a chimney-top mass
+        if (p.wallDir !== 0) {
+          window.__test.key('KeyZ', true);
+          await new Promise(r => setTimeout(r, 80));
+          window.__test.key('KeyZ', false);
+          window.__test.key(dir, false);
+          dir = dir === 'ArrowRight' ? 'ArrowLeft' : 'ArrowRight';
+          window.__test.key(dir, true);
+          jumps++;
+        }
+      }
+      window.__test.key(dir, false);
+      await new Promise(r => setTimeout(r, 300));
+      const st = window.__test.state();
+      window.__test.setHp(4); // undo any chip damage taken during the climb
+      return { jumps, topReached: st.y + 14 <= 100 };
+    });
+    report('route: ascent chimney climbable via wall jumps', climb.topReached, `${climb.jumps} wall jumps`);
+
+
     // ---------- 13. roll + crawl ----------
     const verbs = await page.evaluate(async () => {
+      window.__test.setHp(4);
       window.__test.teleport('descent', 4, 10);
-      // wait until actually grounded (roll requires ground contact)
+      // wait until alive, in play state, and actually grounded (roll needs all three)
       const t0 = performance.now();
       await new Promise(res => (function poll() {
-        if (window.__test.state().grounded || performance.now() - t0 > 3000) res();
+        const st = window.__test.state();
+        if ((st.state === 'play' && st.grounded) || performance.now() - t0 > 4000) res();
         else requestAnimationFrame(poll);
       })());
       await new Promise(r => setTimeout(r, 100));
@@ -301,6 +340,7 @@ async function main() {
     report('crawl: hitbox drops on down-hold', verbs.crawl === true);
 
     // ---------- 14. boss: wake, fight flow, trophy, exit ----------
+    await step('setHp', 4); // enter the fight at full health
     await step('teleport', 'bossHollow', 4, 7);
     await settle(300);
     await page.keyboard.down('ArrowRight');
