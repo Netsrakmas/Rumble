@@ -100,6 +100,22 @@ export function drawHud(ctx, game) {
     drawText(ctx, game.levelToast, C.VIEW_W / 2, 40, PAL.ui, { align: 'center', scale: 2 });
     ctx.globalAlpha = 1;
   }
+
+  // room name toast (first visit)
+  if (game.roomToastT > 0 && game.roomToast) {
+    ctx.globalAlpha = Math.min(1, game.roomToastT * 1.5);
+    drawText(ctx, game.roomToast, C.VIEW_W / 2, 26, PAL.dewHalo, { align: 'center' });
+    ctx.globalAlpha = 1;
+  }
+
+  // fresh-hit sting: red screen edges for a beat
+  if (game.hpFlashT > 0.35) {
+    ctx.globalAlpha = (game.hpFlashT - 0.35) * 1.6;
+    ctx.fillStyle = PAL.hazard;
+    ctx.fillRect(0, 0, C.VIEW_W, 2); ctx.fillRect(0, C.VIEW_H - 2, C.VIEW_W, 2);
+    ctx.fillRect(0, 0, 2, C.VIEW_H); ctx.fillRect(C.VIEW_W - 2, 0, 2, C.VIEW_H);
+    ctx.globalAlpha = 1;
+  }
 }
 
 export function drawShop(ctx, game) {

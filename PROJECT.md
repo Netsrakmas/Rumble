@@ -6,6 +6,10 @@
 **Live:** https://netsrakmas.github.io/Rumble/
 **Updated:** 2026-08-04
 
+## Gap-closing loop vs successful 2D games (2026-08-05)
+Iteration 1 (vs Celeste/HK/Shovel Knight demo bar): opening tumble cinematic (input-locked fall, feathers, landing thud — tests skip it via __test.start); ambient critters (butterflies bright rooms / pulsing fireflies dark rooms); room-name toasts on first visit (persisted); completion-aware demo-end stats (tickets X/Y, grotto found/missed/true-ending lines); footstep + wall-slide SFX; red screen-edge sting on damage; mushroom-silhouette parallax in dark rooms; god-ray on the gun pedestal. Verified harness 43/43 ×2 + playthrough ×2.
+Next iteration candidates: painted/generated art skin (largest remaining gap), door open/walk-in animations, boss arena environmental detail, key rebinding, desktop wrapper for Steam.
+
 ## Polish pass log (2026-08-05, "one level, maximally polished" decision)
 - Scope locked: single-level demo. Level 2 is a short epilogue corridor (enemy removed, local checkpoint added) into the demo-end screen.
 - Title screen: shadowed floating logo, animated Rumble + wandering weevil on a grass stage, showcase tag, version.

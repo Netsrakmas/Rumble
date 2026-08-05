@@ -212,6 +212,7 @@ export const sfx = {
   wallGrab()  { noise({ dur: 0.04, vol: 0.14, freq: 2200 }); },
   roll()      { noise({ dur: 0.10, vol: 0.16, freq: 1200 }); },
   land()      { noise({ dur: 0.05, vol: 0.16, freq: 600 }); },
+  step()      { noise({ dur: 0.03, vol: 0.06, freq: 750 }); },
   door()      { tone({ type: 'triangle', f0: 300, f1: 500, dur: 0.18, vol: 0.20 }); },
   bossRoar()  { tone({ type: 'sawtooth', f0: 120, f1: 45, dur: 0.5, vol: 0.45 }); noise({ dur: 0.4, vol: 0.30, freq: 300 }); },
   bossHit()   { tone({ type: 'triangle', f0: 300, f1: 100, dur: 0.10, vol: 0.30 }); },

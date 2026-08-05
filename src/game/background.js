@@ -85,13 +85,22 @@ export function drawBackground(ctx, cam, room, t) {
     const hgt = 30 + r * 55;
     const col = r > 0.5 ? PAL.farFoliage : PAL.leafDark;
     ctx.fillStyle = col;
-    // stem + head silhouette (giant grass / seed heads)
-    ctx.fillRect(x, C.VIEW_H - hgt + oy2 * 0, 3, hgt);
-    ctx.beginPath();
-    ctx.ellipse(x + 1, C.VIEW_H - hgt, 8 + r * 8, 10 + r * 6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    if (r > 0.7) { // leaning blade
-      ctx.fillRect(x + 6, C.VIEW_H - hgt * 0.6, 2, hgt * 0.6);
+    if (dark > 0.2) {
+      // dark regions grow silhouetted mushrooms instead of seed heads
+      ctx.fillRect(x, C.VIEW_H - hgt, 4, hgt);
+      ctx.beginPath();
+      ctx.ellipse(x + 2, C.VIEW_H - hgt, 10 + r * 9, 6 + r * 4, 0, Math.PI, Math.PI * 2);
+      ctx.fill();
+      if (r > 0.6) { ctx.fillRect(x + 12, C.VIEW_H - hgt * 0.5, 3, hgt * 0.5); ctx.beginPath(); ctx.ellipse(x + 13, C.VIEW_H - hgt * 0.5, 7, 4, 0, Math.PI, Math.PI * 2); ctx.fill(); }
+    } else {
+      // stem + head silhouette (giant grass / seed heads)
+      ctx.fillRect(x, C.VIEW_H - hgt + oy2 * 0, 3, hgt);
+      ctx.beginPath();
+      ctx.ellipse(x + 1, C.VIEW_H - hgt, 8 + r * 8, 10 + r * 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (r > 0.7) { // leaning blade
+        ctx.fillRect(x + 6, C.VIEW_H - hgt * 0.6, 2, hgt * 0.6);
+      }
     }
   }
 }

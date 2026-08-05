@@ -13,6 +13,7 @@ export default {
     // 1. DESCENT — intro. Walk right, learn jump + crawl, find the gun.
     {
       id: 'descent',
+      name: 'THE DESCENT',
       map: [
         "########################################",
         "########################################",
@@ -42,6 +43,7 @@ export default {
     // gun-jump. First enemies, tickets on risky branches, checkpoint.
     {
       id: 'terraces',
+      name: 'DEW TERRACES',
       map: [
         "################################################",
         "################################################",
@@ -75,6 +77,7 @@ export default {
     // 3. BRAMBLE CELLAR — crawl tunnels, thorns, gnats, hidden tickets.
     {
       id: 'cellar',
+      name: 'BRAMBLE CELLAR',
       dark: 0.35,
       map: [
         "############################################",
@@ -106,6 +109,7 @@ export default {
     // checkpoint, and the wall-jump shaft the boots unlock.
     {
       id: 'atrium',
+      name: 'THE ATRIUM',
       dark: 0.15,
       map: [
         "##############################",
@@ -151,6 +155,7 @@ export default {
     // 5. BLOOM ASCENT — wall-jump + gun-jump climb. Thorned ledges.
     {
       id: 'ascent',
+      name: 'BLOOM ASCENT',
       map: [
         "##############################",
         "##############################",
@@ -193,6 +198,7 @@ export default {
     // high door in the cellar. Pure bonus, off the critical path.
     {
       id: 'dewGrotto',
+      name: 'THE DEW GROTTO',
       dark: 0.1,
       map: [
         "####################",
@@ -216,6 +222,7 @@ export default {
     // 6. BULLHORN HOLLOW — boss arena. Doors lock while the beetle lives.
     {
       id: 'bossHollow',
+      name: 'BULLHORN HOLLOW',
       dark: 0.3,
       map: [
         "####################################",

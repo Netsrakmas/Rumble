@@ -49,6 +49,15 @@ export class Game {
     this.titleSel = 0;
     this.hasSave = !!loadSave();
     this.stats = { deaths: 0, playT: 0 };
+    this.introT = 0;        // opening tumble cinematic
+    this.visited = new Set();
+    this.roomToast = ''; this.roomToastT = 0;
+    this.critters = [];
+    // completion totals from level data (for the demo-end screen)
+    this.totalTickets = 0;
+    for (const lvl of Object.values(LEVELS)) {
+      for (const r of lvl.rooms) for (const row of r.map) this.totalTickets += (row.match(/\*/g) || []).length;
+    }
     playMusic('title'); // queued until the first input unlocks audio
   }
 
@@ -61,9 +70,13 @@ export class Game {
     this.bossesDead = new Set();
     this.checkpoint = null;
     this.stats = { deaths: 0, playT: 0 };
+    this.visited = new Set();
     this.loadLevel('level1');
     this.state = 'play';
     this.transitionT = 0.25; this.transitionPhase = 'in'; // fade in from the title
+    // opening cinematic: Rumble tumbles in from above, feathers trailing
+    this.introT = 1.1;
+    this.player.body.vy = 60;
   }
 
   continueRun() {
@@ -75,6 +88,7 @@ export class Game {
     this.bossesDead = new Set(s.bossesDead);
     this.checkpoint = s.checkpoint;
     this.stats = s.stats || { deaths: 0, playT: 0 };
+    this.visited = new Set(s.visited || []);
     this.loadLevel(s.checkpoint?.level || 'level1');
     if (this.checkpoint && this.checkpoint.level === this.levelId) {
       this.enterRoom(this.checkpoint.room, { x: this.checkpoint.x, y: this.checkpoint.y });
@@ -176,6 +190,25 @@ export class Game {
         ent.locked = false; // locks when boss wakes
       }
     }
+
+    // room-name toast on first visit (metroidvania orientation)
+    const visitKey = `${this.levelId}:${roomId}`;
+    if (!this.visited.has(visitKey)) {
+      this.visited.add(visitKey);
+      if (rd.name && this.levelToastT <= 1) { this.roomToast = rd.name; this.roomToastT = 2.2; }
+    }
+
+    // ambient critters: butterflies in bright rooms, fireflies in dark ones
+    this.critters = [];
+    const n = Math.min(3, 1 + (this.room.w * this.room.h > 500 ? 2 : 1));
+    for (let i = 0; i < n; i++) {
+      this.critters.push({
+        x: (0.2 + 0.6 * ((i * 2654435761 + roomId.length) % 100) / 100) * this.room.pxW,
+        y: 40 + (i * 37) % 80,
+        t: i * 2.7,
+        firefly: (rd.dark || 0) > 0.2,
+      });
+    }
     this.camera.jumpTo(this.playerCamTarget(), this.room);
   }
 
@@ -220,6 +253,7 @@ export class Game {
       bossesDead: [...this.bossesDead],
       checkpoint: this.checkpoint,
       stats: this.stats,
+      visited: [...this.visited],
     });
   }
 
@@ -314,6 +348,7 @@ export class Game {
     this.levelToastT -= dt;
     this.hpFlashT -= dt;
     this.ticketBounceT -= dt;
+    this.roomToastT -= dt;
     if (this.player) {
       if (this.player.hp < this._prevHp) this.hpFlashT = 0.5;
       this._prevHp = this.player.hp;
@@ -423,6 +458,30 @@ export class Game {
     this.hitstopT -= dt;
     if (this.hitstopT > 0) return;
 
+    // opening cinematic: input locked, feathers spiral down around Rumble
+    if (this.introT > 0) {
+      this.introT -= dt;
+      if (Math.random() < 0.4) {
+        this.particles.spawn({
+          x: this.player.cx + (Math.random() - 0.5) * 26, y: this.player.body.y - 12,
+          vx: (Math.random() - 0.5) * 26, vy: 16 + Math.random() * 14, g: -6, drag: 1.2,
+          size: 2, color: Math.random() < 0.5 ? PAL.beeAccent : PAL.ui, life: 1.6, alpha: 0.85,
+        });
+      }
+      if (this.introT <= 0 && this.player.grounded) {
+        this.particles.landDust(this.player.cx, this.player.body.bottom, true);
+        this.camera.addTrauma(0.35);
+        sfx.land();
+      }
+    }
+
+    // ambient critters
+    for (const c of this.critters) {
+      c.t += dt;
+      c.x += Math.sin(c.t * (c.firefly ? 0.5 : 1.1)) * (c.firefly ? 8 : 22) * dt;
+      c.y += Math.cos(c.t * (c.firefly ? 0.7 : 1.7)) * (c.firefly ? 6 : 14) * dt;
+    }
+
     const p = this.player;
     p.update(dt, this);
 
@@ -520,6 +579,29 @@ export class Game {
     drawBackground(ctx, this.camera, this.room, this.time);
     this.room.draw(ctx, this.camera, this.time);
 
+    // critters: alive but harmless — drawn behind the actors
+    for (const c of this.critters) {
+      const cx = Math.round(c.x - this.camera.ox()), cy = Math.round(c.y - this.camera.oy());
+      if (cx < -8 || cx > C.VIEW_W + 8 || cy < -8 || cy > C.VIEW_H + 8) continue;
+      if (c.firefly) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.35 + 0.3 * Math.sin(c.t * 3);
+        ctx.fillStyle = PAL.dewHalo;
+        ctx.fillRect(cx, cy, 2, 2);
+        ctx.globalAlpha = 0.12;
+        ctx.fillRect(cx - 2, cy - 2, 6, 6);
+        ctx.restore();
+      } else {
+        const flap = Math.floor(c.t * 10) % 2;
+        ctx.fillStyle = PAL.beeAccent;
+        ctx.fillRect(cx - 2, cy - flap, 2, 2);
+        ctx.fillRect(cx + 1, cy - flap, 2, 2);
+        ctx.fillStyle = PAL.outline;
+        ctx.fillRect(cx, cy, 1, 2);
+      }
+    }
+
     for (const ent of this.entities) ent.render(ctx, this.camera, this);
     for (const e of this.enemies) e.render(ctx, this.camera);
     if (this.boss) this.boss.render(ctx, this.camera);
@@ -552,8 +634,12 @@ export class Game {
       const t = Math.floor(this.stats.playT);
       const mm = String(Math.floor(t / 60)).padStart(2, '0'), ss = String(t % 60).padStart(2, '0');
       drawText(ctx, `TIME: ${mm}:${ss}`, C.VIEW_W / 2, 88, PAL.ui, { align: 'center' });
-      drawText(ctx, `TICKETS: ${this.tickets}   FALLS: ${this.stats.deaths}`, C.VIEW_W / 2, 98, PAL.ui, { align: 'center' });
-      drawText(ctx, this.flags.hat ? 'HAT ACQUIRED. TRUE ENDING.' : 'SECRET: THE ACORN CAP AWAITS...', C.VIEW_W / 2, 112, PAL.leafHi, { align: 'center' });
+      drawText(ctx, `TICKETS: ${this.tickets}/${this.totalTickets}   FALLS: ${this.stats.deaths}`, C.VIEW_W / 2, 98, PAL.ui, { align: 'center' });
+      const grotto = this.visited.has('level1:dewGrotto');
+      const line = !grotto ? 'MISSED: A SECRET GROTTO HIDES IN THE CELLAR...'
+        : !this.flags.hat ? 'SECRET FOUND! BUT THE ACORN CAP AWAITS...'
+        : 'GROTTO FOUND. HAT ACQUIRED. TRUE ENDING.';
+      drawText(ctx, line, C.VIEW_W / 2, 112, PAL.leafHi, { align: 'center' });
       drawText(ctx, 'WISHLIST RUMBLE ON STEAM!', C.VIEW_W / 2, 132, PAL.beeAccent, { align: 'center' });
       drawText(ctx, 'Z: BACK TO TITLE', C.VIEW_W / 2, 152, PAL.bgLight, { align: 'center' });
       // the champions flank the exit prompt, under the confetti

@@ -9,6 +9,7 @@ export default {
   rooms: [
     {
       id: 'mineEntry',
+      name: 'MINES ENTRANCE',
       dark: 0.3,
       map: [
         "##############################",

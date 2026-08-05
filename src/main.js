@@ -93,7 +93,7 @@ loadAssets().then(() => {
       enemies: game.enemies?.length,
       particles: game.particles.list.length,
     }),
-    start: () => { if (game.state === 'title') game.startNew(); },
+    start: () => { if (game.state === 'title') { game.startNew(); game.introT = 0; } }, // tests skip the cinematic
     teleport: (room, tx, ty) => {
       game.enterRoom(room, { x: tx * C.TILE + 4, y: ty * C.TILE + 1 });
     },

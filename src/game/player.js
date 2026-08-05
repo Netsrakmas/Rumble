@@ -8,6 +8,7 @@ import { drawSprite, Anim } from '../engine/sprites.js';
 import { sfx } from '../engine/audio.js';
 
 const STAND_H = 14, CRAWL_H = 8, HB_W = 8;
+const NULL_INPUT = { down: () => false, pressed: () => false };
 
 export class Player {
   constructor(x, y) {
@@ -145,7 +146,7 @@ export class Player {
   // ---- fixed update ----
   update(dt, game) {
     if (this.dead) return;
-    const input = game.input;
+    const input = game.introT > 0 ? NULL_INPUT : game.input; // cinematic lock
     const room = game.room;
     const b = this.body;
 
@@ -334,12 +335,18 @@ export class Player {
       this._runDustT = (this._runDustT || 0) + dt;
       if (this._runDustT > 0.15) {
         this._runDustT = 0;
+        sfx.step();
         game.particles.spawn({
           x: this.cx - this.facing * 5, y: b.bottom - 1,
           vx: -this.facing * 20, vy: -15, g: -20, drag: 3,
           size: 1, color: PAL.ui, life: 0.25, alpha: 0.7,
         });
       }
+    }
+    // wall-slide scrape ticks
+    if (wallSliding) {
+      this._slideSfxT = (this._slideSfxT || 0) + dt;
+      if (this._slideSfxT > 0.16) { this._slideSfxT = 0; sfx.wallGrab(); }
     }
 
     // squash ease-back

@@ -98,6 +98,23 @@ export class GunPickup {
   render(ctx, cam) {
     drawSprite(ctx, 'props.pedestal', 0, this.x - cam.ox(), this.y - 1 - cam.oy());
     if (!this.done) {
+      // god-ray on the game's most important pickup
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const gx = this.x - cam.ox();
+      const grad = ctx.createLinearGradient(0, this.y - 90 - cam.oy(), 0, this.y - cam.oy());
+      grad.addColorStop(0, 'rgba(205,223,108,0)');
+      grad.addColorStop(1, 'rgba(205,223,108,0.10)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(gx - 5, this.y - 90 - cam.oy());
+      ctx.lineTo(gx + 5, this.y - 90 - cam.oy());
+      ctx.lineTo(gx + 14, this.y - cam.oy());
+      ctx.lineTo(gx - 14, this.y - cam.oy());
+      ctx.fill();
+      ctx.restore();
+    }
+    if (!this.done) {
       const bob = Math.round(Math.sin(this.t * 2.5) * 2);
       drawSprite(ctx, 'props.gun', 0, this.x - cam.ox(), this.y - 10 + bob - cam.oy());
       ctx.save();
