@@ -253,7 +253,7 @@ async function main() {
     await key('x', 60); // buy selected (Burr Boots)
     await settle(200);
     s = await S();
-    report('shop: Burr Boots purchased', s.flags.burrBoots === true && s.tickets === 8, `tkt=${s.tickets}`);
+    report('shop: Burr Boots purchased', s.flags.burrBoots === true && s.tickets === 10, `tkt=${s.tickets}`);
     await key('Escape', 60);
     await settle(150);
     s = await S();

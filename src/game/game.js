@@ -9,13 +9,13 @@ import { Particles } from '../engine/particles.js';
 import { Projectiles } from './projectiles.js';
 import { makeEnemy } from './enemies.js';
 import { BullhornBeetle } from './boss.js';
-import { Ticket, GunPickup, Checkpoint, Vending, Sign, Door, Trophy } from './entities.js';
+import { Ticket, GunPickup, Checkpoint, Vending, Sign, Door, Trophy, DewHeal } from './entities.js';
 import { drawBackground, drawForeground } from './background.js';
 import { drawHud, drawShop } from './hud.js';
 import { drawText } from '../engine/text.js';
-import { loadSave, writeSave, clearSave } from '../engine/save.js';
+import { loadSave, writeSave, clearSave, getSettings, setSetting } from '../engine/save.js';
 import { overlaps } from '../engine/physics.js';
-import { sfx } from '../engine/audio.js';
+import { sfx, playMusic, applyAudioSettings } from '../engine/audio.js';
 import { LEVELS } from '../levels/index.js';
 
 export class Game {
@@ -40,9 +40,12 @@ export class Game {
     this.deathT = 0;
     this.shop = null; this.shopSel = 0;
     this.paused = false;
+    this.pauseSel = 0;
     this.moteT = 0;
     this.titleSel = 0;
     this.hasSave = !!loadSave();
+    this.stats = { deaths: 0, playT: 0 };
+    playMusic('title'); // queued until the first input unlocks audio
   }
 
   // ---------- level / room management ----------
@@ -53,6 +56,7 @@ export class Game {
     this.collected = new Set();
     this.bossesDead = new Set();
     this.checkpoint = null;
+    this.stats = { deaths: 0, playT: 0 };
     this.loadLevel('level1');
     this.state = 'play';
   }
@@ -65,6 +69,7 @@ export class Game {
     this.collected = new Set(s.collected);
     this.bossesDead = new Set(s.bossesDead);
     this.checkpoint = s.checkpoint;
+    this.stats = s.stats || { deaths: 0, playT: 0 };
     this.loadLevel(s.checkpoint?.level || 'level1');
     if (this.checkpoint && this.checkpoint.level === this.levelId) {
       this.enterRoom(this.checkpoint.room, { x: this.checkpoint.x, y: this.checkpoint.y });
@@ -79,6 +84,7 @@ export class Game {
     this.world = new World(def);
     this.levelToast = def.name;
     this.levelToastT = 3;
+    playMusic(def.music || 'garden');
     const start = def.start;
     this.enterRoom(start.room, { x: start.x * C.TILE + 4, y: start.y * C.TILE + 2 });
   }
@@ -115,6 +121,7 @@ export class Game {
       const key = `${this.levelId}:${roomId}:t${t.tx},${t.ty}`;
       if (!this.collected.has(key)) this.entities.push(new Ticket(t.tx, t.ty, key));
     }
+    for (const h of this.room.heals) this.entities.push(new DewHeal(h.tx, h.ty));
     for (const [ch, d] of this.room.doors) {
       this.entities.push(new Door(d.tx, d.ty, d.def));
     }
@@ -207,10 +214,12 @@ export class Game {
       collected: [...this.collected],
       bossesDead: [...this.bossesDead],
       checkpoint: this.checkpoint,
+      stats: this.stats,
     });
   }
 
   onPlayerDeath() {
+    this.stats.deaths++;
     this.hitstop(0.12);
     this.camera.addTrauma(1);
     this.particles.burst(this.player.cx, this.player.cy, 26, { speed: 160, color: PAL.bee, life: 0.6 });
@@ -254,7 +263,11 @@ export class Game {
   finishTransition() {
     const door = this.pendingDoor;
     const to = door.def.to;
-    if (to.startsWith('level:')) {
+    if (to === 'level:demoEnd') {
+      this.state = 'demoEnd';
+      this.saveState();
+      playMusic('title');
+    } else if (to.startsWith('level:')) {
       this.loadLevel(to.slice(6));
     } else {
       this.enterRoom(to, null, door.def.toDoor);
@@ -264,6 +277,7 @@ export class Game {
 
   onBossDefeated(boss) {
     this.bossesDead.add(boss.roomKey);
+    playMusic(this.world.levelDef.music || 'garden');
     this.tickets += 15;
     for (const ent of this.entities) if (ent instanceof Door) ent.locked = false;
     this.entities.push(new Trophy(boss.cx, boss.body.y));
@@ -299,6 +313,16 @@ export class Game {
       case 'play': this.stepPlay(dt); break;
       case 'shop': this.stepShop(dt); break;
       case 'dead': this.stepDead(dt); break;
+      case 'demoEnd': this.stepDemoEnd(dt); break;
+    }
+  }
+
+  stepDemoEnd(dt) {
+    this.particles.update(dt);
+    if (this.input.pressed('confirm') || this.input.pressed('shoot') || this.input.pressed('jump')) {
+      this.hasSave = true;
+      this.titleSel = 0;
+      this.state = 'title';
     }
   }
 
@@ -335,9 +359,33 @@ export class Game {
     if (this.deathT <= 0) this.respawn();
   }
 
+  pauseItems() {
+    const s = getSettings();
+    return [
+      { label: 'RESUME', act: () => { this.paused = false; } },
+      { label: `MUSIC: ${Math.round(s.music * 100)}`, adj: (d) => { setSetting('music', Math.min(1, Math.max(0, s.music + d * 0.25))); applyAudioSettings(); } },
+      { label: `SFX: ${Math.round(s.sfx * 100)}`, adj: (d) => { setSetting('sfx', Math.min(1, Math.max(0, s.sfx + d * 0.25))); applyAudioSettings(); } },
+      { label: `SCREEN SHAKE: ${s.shake ? 'ON' : 'OFF'}`, adj: () => { setSetting('shake', s.shake ? 0 : 1); }, act: () => { setSetting('shake', s.shake ? 0 : 1); } },
+      { label: 'RESTART AT CHECKPOINT', act: () => { this.paused = false; this.respawn(); } },
+      { label: 'QUIT TO TITLE', act: () => { this.paused = false; this.hasSave = true; this.titleSel = 0; this.state = 'title'; playMusic('title'); } },
+    ];
+  }
+
+  stepPause() {
+    const items = this.pauseItems();
+    if (this.input.pressed('down')) { this.pauseSel = (this.pauseSel + 1) % items.length; sfx.ticket(); }
+    if (this.input.pressed('up')) { this.pauseSel = (this.pauseSel + items.length - 1) % items.length; sfx.ticket(); }
+    const it = items[this.pauseSel];
+    if (this.input.pressed('left') && it.adj) { it.adj(-1); sfx.ticket(); }
+    if (this.input.pressed('right') && it.adj) { it.adj(1); sfx.ticket(); }
+    if ((this.input.pressed('confirm') || this.input.pressed('jump') || this.input.pressed('shoot')) && it.act) { it.act(); sfx.pickup(); }
+    if (this.input.pressed('pause')) this.paused = false;
+  }
+
   stepPlay(dt) {
-    if (this.input.pressed('pause')) { this.paused = !this.paused; }
-    if (this.paused) return;
+    if (this.input.pressed('pause') && !this.paused) { this.paused = true; this.pauseSel = 0; return; }
+    if (this.paused) { this.stepPause(); return; }
+    this.stats.playT += dt;
 
     // transition freeze
     if (this.transitionT > 0) {
@@ -378,6 +426,7 @@ export class Game {
       const b = this.boss;
       if (!b.awake && Math.abs(p.cx - b.cx) < 9 * C.TILE) {
         b.wake(this);
+        playMusic('boss');
         for (const ent of this.entities) if (ent instanceof Door) ent.locked = true;
         // physical blockers on locked doors
         this.room.extraSolids = this.entities.filter(e => e instanceof Door && e.locked).map(d => d.rect());
@@ -462,10 +511,29 @@ export class Game {
     if (this.state === 'shop') drawShop(ctx, this);
 
     if (this.paused) {
-      ctx.fillStyle = 'rgba(46,34,47,0.7)';
+      ctx.fillStyle = 'rgba(46,34,47,0.82)';
       ctx.fillRect(0, 0, C.VIEW_W, C.VIEW_H);
-      drawText(ctx, 'PAUSED', C.VIEW_W / 2, C.VIEW_H / 2 - 10, PAL.ui, { align: 'center', scale: 2 });
-      drawText(ctx, 'ESC TO RESUME', C.VIEW_W / 2, C.VIEW_H / 2 + 8, PAL.bgLight, { align: 'center' });
+      drawText(ctx, 'PAUSED', C.VIEW_W / 2, 34, PAL.dewHalo, { align: 'center', scale: 2 });
+      this.pauseItems().forEach((it, i) => {
+        const sel = i === this.pauseSel;
+        drawText(ctx, (sel ? '> ' : '') + it.label + (it.adj && sel ? ' <>' : ''), C.VIEW_W / 2, 62 + i * 12,
+          sel ? PAL.ui : PAL.bgLight, { align: 'center' });
+      });
+      drawText(ctx, 'ARROWS: NAVIGATE/ADJUST   Z: SELECT   ESC: RESUME', C.VIEW_W / 2, C.VIEW_H - 16, PAL.bgLight, { align: 'center' });
+    }
+
+    if (this.state === 'demoEnd') {
+      ctx.fillStyle = 'rgba(46,34,47,0.92)';
+      ctx.fillRect(0, 0, C.VIEW_W, C.VIEW_H);
+      drawText(ctx, 'DEMO COMPLETE!', C.VIEW_W / 2, 36, PAL.bee, { align: 'center', scale: 3 });
+      drawText(ctx, 'THANKS FOR PLAYING RUMBLE', C.VIEW_W / 2, 66, PAL.dewHalo, { align: 'center' });
+      const t = Math.floor(this.stats.playT);
+      const mm = String(Math.floor(t / 60)).padStart(2, '0'), ss = String(t % 60).padStart(2, '0');
+      drawText(ctx, `TIME: ${mm}:${ss}`, C.VIEW_W / 2, 88, PAL.ui, { align: 'center' });
+      drawText(ctx, `TICKETS: ${this.tickets}   FALLS: ${this.stats.deaths}`, C.VIEW_W / 2, 98, PAL.ui, { align: 'center' });
+      drawText(ctx, this.flags.hat ? 'HAT ACQUIRED. TRUE ENDING.' : 'SECRET: THE ACORN CAP AWAITS...', C.VIEW_W / 2, 112, PAL.leafHi, { align: 'center' });
+      drawText(ctx, 'WISHLIST RUMBLE ON STEAM!', C.VIEW_W / 2, 132, PAL.beeAccent, { align: 'center' });
+      drawText(ctx, 'Z: BACK TO TITLE', C.VIEW_W / 2, 152, PAL.bgLight, { align: 'center' });
     }
 
     // transition fade (eased out/in over 2×250 ms)

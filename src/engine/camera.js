@@ -2,6 +2,7 @@
 // + trauma-model screen shake (Eiserloh). Whole-pixel offsets only.
 
 import { C } from '../constants.js';
+import { getSettings } from './save.js';
 
 export class Camera {
   constructor() {
@@ -38,7 +39,7 @@ export class Camera {
 
     // shake
     this.trauma = Math.max(0, this.trauma - C.traumaDecay * dt);
-    const s = this.trauma * this.trauma;
+    const s = this.trauma * this.trauma * getSettings().shake;
     this._noiseT += dt * 30;
     if (s > 0.001) {
       this.shakeX = Math.round(C.shakeMax * s * (Math.sin(this._noiseT * 1.3) * 0.6 + Math.sin(this._noiseT * 3.7) * 0.4));

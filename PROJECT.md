@@ -6,6 +6,14 @@
 **Live:** https://netsrakmas.github.io/Rumble/
 **Updated:** 2026-08-04
 
+## Demo-readiness log (2026-08-05, Steam showcase target)
+- Completability PROVEN: test/playthrough.mjs bot beats the demo start→end with only human inputs (run/jump/crawl/gun-jump/shop/wall-jump); found+fixed: 3-tall intro block, natural-route ticket famine (floor-line tickets added, boots 12→10), atrium shaft's 1-tile exit gap (ledge now meets the shaft lip).
+- Music: 4 chiptune themes (title/garden/boss/mines) via WebAudio step sequencer, switching on level/boss events.
+- Pause menu: resume, music/SFX volume, screen-shake toggle (persisted), restart-at-checkpoint, quit-to-title.
+- Demo-complete screen: time/tickets/deaths stats + wishlist CTA behind a door in Level 2.
+- Dew heal pickups ('+' tile char, respawn per room entry); boss hop buffed to threaten perch cheese.
+- Verified: harness 43/43 ×2 + full playthrough ×2 green.
+
 ## One-liner
 A finished, polished Level 1 of a 2D pixel-art metroidvania with the mechanics of Dewdrop Dynasty (small insect hero, tight platforming, dash/wall/combat abilities), built with fully separated swappable assets and a data-driven level format so more levels can be added later.
 

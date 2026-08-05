@@ -129,8 +129,8 @@ export class BullhornBeetle {
         if (this.timer <= 0) {
           this.state = 'hop';
           this.anim.set('boss.hop', true);
-          b.vy = -330;
-          this.hopVx = Math.sign(p.cx - this.cx) * Math.min(180, Math.abs(p.cx - this.cx) * 1.2);
+          b.vy = -430; // high enough to threaten the oneway perches — no safe sniping spot
+          this.hopVx = Math.sign(p.cx - this.cx) * Math.min(200, Math.abs(p.cx - this.cx) * 1.2);
         }
         break;
       case 'hop': {

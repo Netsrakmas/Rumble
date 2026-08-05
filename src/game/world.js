@@ -10,7 +10,7 @@ export const T = { EMPTY: 0, SOLID: 1, ONEWAY: 2, THORNS: 3 };
 // base legend shared by all levels; levels may extend per-room with `legend`
 const BASE_LEGEND = {
   '#': 'solid', '-': 'oneway', '^': 'thorns', '.': 'empty',
-  'P': 'spawn', '*': 'ticket',
+  'P': 'spawn', '*': 'ticket', '+': 'heal',
 };
 const DOOR_CHARS = 'ABCDEFGH';
 
@@ -39,6 +39,7 @@ export class Room {
 
     this.grid = new Uint8Array(this.w * this.h);
     this.tickets = [];       // {tx,ty}
+    this.heals = [];         // {tx,ty} — respawn every room entry (not persisted)
     this.spawn = null;       // {tx,ty}
     this.doors = new Map();  // char -> {tx,ty,def}
     this.extraSolids = [];   // dynamic blockers (locked doors etc), rects
@@ -62,6 +63,7 @@ export class Room {
           case 'thorns': this.grid[y * this.w + x] = T.THORNS; break;
           case 'spawn': this.spawn = { tx: x, ty: y }; break;
           case 'ticket': this.tickets.push({ tx: x, ty: y }); break;
+          case 'heal': this.heals.push({ tx: x, ty: y }); break;
           case 'empty': break;
           default: fail(def.id, `legend kind '${kind}' not supported`);
         }

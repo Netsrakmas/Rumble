@@ -17,3 +17,21 @@ export function writeSave(data) {
 export function clearSave() {
   try { localStorage.removeItem(KEY); } catch { /* private mode */ }
 }
+
+// ---- settings (music/sfx/shake), separate from the run save ----
+const SKEY = 'rumble.settings.v1';
+const DEFAULTS = { music: 1, sfx: 1, shake: 1 };
+let cached = null;
+
+export function getSettings() {
+  if (cached) return cached;
+  try { cached = { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(SKEY)) || {}) }; }
+  catch { cached = { ...DEFAULTS }; }
+  return cached;
+}
+
+export function setSetting(key, value) {
+  const s = getSettings();
+  s[key] = value;
+  try { localStorage.setItem(SKEY, JSON.stringify(s)); } catch { /* private mode */ }
+}

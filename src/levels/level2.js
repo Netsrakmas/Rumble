@@ -4,6 +4,7 @@
 export default {
   id: 'level2',
   name: 'THE CHEESE MINES',
+  music: 'mines',
   start: { room: 'mineEntry', x: 3, y: 8 },
   rooms: [
     {
@@ -18,14 +19,15 @@ export default {
         "#........----....----........#",
         "#............................#",
         "#............................#",
-        "#..P.........................#",
+        "#..P......................B..#",
         "##############################",
         "##############################",
       ],
       entities: [
         { type: 'sign', x: 8, y: 9, text: 'LEVEL 1 COMPLETE!\nYOU ARE THE BEES KNEES' },
-        { type: 'sign', x: 20, y: 9, text: 'CHEESE MINES\nUNDER CONSTRUCTION' },
-        { type: 'weevil', x: 24, y: 8 },
+        { type: 'sign', x: 20, y: 9, text: 'THE CHEESE MINES AWAIT\nIN THE FULL GAME...' },
+        { type: 'door', char: 'B', to: 'level:demoEnd' },
+        { type: 'weevil', x: 16, y: 8 },
       ],
     },
   ],

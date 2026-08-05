@@ -2,7 +2,7 @@
 // vending machine, signs, doors, trophies. All placed by level data.
 
 import { C, PAL } from '../constants.js';
-import { drawSprite, Anim } from '../engine/sprites.js';
+import { drawSprite, drawTile, Anim } from '../engine/sprites.js';
 import { drawText } from '../engine/text.js';
 import { sfx } from '../engine/audio.js';
 import { overlaps } from '../engine/physics.js';
@@ -36,6 +36,41 @@ export class Ticket {
     ctx.globalAlpha = 0.1 + Math.sin(this.t * 4) * 0.05;
     ctx.fillStyle = PAL.dewHalo;
     ctx.fillRect(this.x - 6 - cam.ox(), this.y - 6 + bob - cam.oy(), 12, 12);
+    ctx.restore();
+  }
+}
+
+// dew droplet that restores 1 HP — respawns on room re-entry, only collectible
+// when hurt (finished-game difficulty smoothing between checkpoints)
+export class DewHeal {
+  constructor(tx, ty) {
+    this.x = tx * C.TILE + 8; this.y = ty * C.TILE + 8;
+    this.t = (tx * 3 + ty * 7) % 10;
+    this.done = false;
+  }
+  rect() { return { x: this.x - 6, y: this.y - 6, w: 12, h: 12 }; }
+  update(dt, game) {
+    this.t += dt;
+    const p = game.player;
+    if (!this.done && p.hp < C.playerHP && overlaps(this.rect(), p.hurtbox())) {
+      this.done = true;
+      p.hp += 1;
+      game.hitstop(C.pickupHitstop);
+      game.particles.burst(this.x, this.y, 8, { speed: 70, g: -80, color: PAL.dew, life: 0.4, add: true });
+      sfx.checkpoint();
+    }
+  }
+  render(ctx, cam) {
+    if (this.done) return;
+    const bob = Math.round(Math.sin(this.t * 2.5) * 2);
+    drawSprite(ctx, 'tiles.dewdrop', 0, this.x - 8 - cam.ox(), this.y - 8 + bob - cam.oy());
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.16 + Math.sin(this.t * 3) * 0.07;
+    const g = ctx.createRadialGradient(this.x - cam.ox(), this.y + bob - cam.oy(), 2, this.x - cam.ox(), this.y + bob - cam.oy(), 11);
+    g.addColorStop(0, PAL.dewHalo); g.addColorStop(1, 'rgba(143,248,226,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(this.x - 11 - cam.ox(), this.y - 11 + bob - cam.oy(), 22, 22);
     ctx.restore();
   }
 }
