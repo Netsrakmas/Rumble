@@ -241,7 +241,7 @@ const log = await page.evaluate(async () => {
   if (!await chimneyClimb(100)) return fail('ascent chimney climb');
   say('ascent chimney climbed');
   let inBoss = false;
-  for (let attempt = 0; attempt < 3 && !inBoss; attempt++) {
+  for (let attempt = 0; attempt < 5 && !inBoss; attempt++) {
     if (st().y + 14 > 120) { // fell back down — re-climb
       if (!await walkTo(14 * T, { hop: true })) return fail('ascent re-approach');
       if (!await chimneyClimb(100)) continue;

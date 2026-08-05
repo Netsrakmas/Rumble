@@ -5,12 +5,12 @@
 import { C } from '../constants.js';
 import { drawTile } from '../engine/sprites.js';
 
-export const T = { EMPTY: 0, SOLID: 1, ONEWAY: 2, THORNS: 3 };
+export const T = { EMPTY: 0, SOLID: 1, ONEWAY: 2, THORNS: 3, WATER: 4 };
 
 // base legend shared by all levels; levels may extend per-room with `legend`
 const BASE_LEGEND = {
   '#': 'solid', '-': 'oneway', '^': 'thorns', '.': 'empty',
-  'P': 'spawn', '*': 'ticket', '+': 'heal',
+  'P': 'spawn', '*': 'ticket', '+': 'heal', '~': 'water',
 };
 const DOOR_CHARS = 'ABCDEFGH';
 
@@ -64,6 +64,7 @@ export class Room {
           case 'spawn': this.spawn = { tx: x, ty: y }; break;
           case 'ticket': this.tickets.push({ tx: x, ty: y }); break;
           case 'heal': this.heals.push({ tx: x, ty: y }); break;
+          case 'water': this.grid[y * this.w + x] = T.WATER; break;
           case 'empty': break;
           default: fail(def.id, `legend kind '${kind}' not supported`);
         }
@@ -172,6 +173,16 @@ export class Room {
     return false;
   }
 
+  waterRect(r) {
+    const x0 = Math.floor(r.x / C.TILE), x1 = Math.floor((r.x + r.w - 1) / C.TILE);
+    const y0 = Math.floor(r.y / C.TILE), y1 = Math.floor((r.y + r.h - 1) / C.TILE);
+    for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+      if (tx < 0 || ty < 0 || tx >= this.w || ty >= this.h) continue;
+      if (this.grid[ty * this.w + tx] === T.WATER) return true;
+    }
+    return false;
+  }
+
   groundedOn(r) { // standing check: solid or oneway directly below
     if (this.solidRect({ x: r.x, y: r.y + 1, w: r.w, h: r.h })) return true;
     return this.onewayStop({ x: r.x, y: r.y + 1, w: r.w, h: r.h }, r.y + r.h);
@@ -199,6 +210,25 @@ export class Room {
         ctx.globalAlpha = 0.10 + 0.06 * Math.sin(t * 3 + tx);
         ctx.fillStyle = '#e83b3b';
         ctx.fillRect(px, py + 4, C.TILE, 12);
+        ctx.restore();
+      } else if (g === T.WATER) {
+        // dew pool — the style bible's "jewelry": teal body, shimmering
+        // sine surface line, sparse sparkle pixels
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = '#30e1b9';
+        ctx.fillRect(px, py + 6, C.TILE, 10);
+        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = '#8ff8e2';
+        for (let sx = 0; sx < C.TILE; sx += 4) {
+          const dy = Math.round(Math.sin(t * 2.4 + (tx * C.TILE + sx) * 0.22));
+          ctx.fillRect(px + sx, py + 5 + dy, 4, 1);
+        }
+        if (((tx * 7 + ty) % 5) === 0) {
+          ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 3 + tx * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(px + (tx * 5) % 12 + 2, py + 8, 1, 1);
+        }
         ctx.restore();
       }
     }

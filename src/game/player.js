@@ -314,6 +314,17 @@ export class Player {
       game.playerHitHazard();
     }
 
+    // dew pools: splash on entry, droplets while sprinting through
+    const inWater = room.waterRect(b.rect());
+    if (inWater && !this._inWater) {
+      game.particles.burst(this.cx, b.bottom - 4, 8, { speed: 70, g: 350, spread: 1.2, angle: -Math.PI / 2, color: PAL.dew, life: 0.4 });
+      sfx.splash();
+    }
+    if (inWater && Math.abs(b.vx) > 100 && Math.random() < 0.3) {
+      game.particles.spawn({ x: this.cx - this.facing * 4, y: b.bottom - 4, vx: -this.facing * 30, vy: -60, g: 350, size: 1, color: PAL.dewHalo, life: 0.35, add: true });
+    }
+    this._inWater = inWater;
+
     // ---- animation selection ----
     if (this.meleeT > 0) this.anim.set('player.melee');
     else if (rolling) this.anim.set('player.roll');

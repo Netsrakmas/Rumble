@@ -213,6 +213,7 @@ export const sfx = {
   roll()      { noise({ dur: 0.10, vol: 0.16, freq: 1200 }); },
   land()      { noise({ dur: 0.05, vol: 0.16, freq: 600 }); },
   step()      { noise({ dur: 0.03, vol: 0.06, freq: 750 }); },
+  splash()    { noise({ dur: 0.12, vol: 0.22, freq: 1000 }); tone({ type: 'sine', f0: 900, f1: 400, dur: 0.09, vol: 0.15 }); },
   door()      { tone({ type: 'triangle', f0: 300, f1: 500, dur: 0.18, vol: 0.20 }); },
   bossRoar()  { tone({ type: 'sawtooth', f0: 120, f1: 45, dur: 0.5, vol: 0.45 }); noise({ dur: 0.4, vol: 0.30, freq: 300 }); },
   bossHit()   { tone({ type: 'triangle', f0: 300, f1: 100, dur: 0.10, vol: 0.30 }); },
