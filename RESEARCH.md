@@ -413,3 +413,44 @@ Sources: Addy Osmani "How to write a good spec for AI agents" (https://addyosman
 | Webulix, Bonsai Beetle, Spore Shroom | Names verified, roles partial |
 | Health display, save form, HP/damage numbers | Unverifiable — anchors supplied |
 
+---
+
+# Addendum 4 (2026-08-05) — AI Pixel-Art Tool Field Research (real-user evidence)
+
+Triggered by playtest feedback: user tried PixelLab for asset generation and was unconvinced. Methodology note: YouTube watch pages, Reddit threads and HN comment pages 403'd through the sandbox proxy — evidence is search-index excerpts, third-party written reviews, devlogs, vendor docs (tagged), and thread titles/paraphrases. Comment sections could NOT be mined verbatim. The niche's review ecosystem is heavily vendor-SEO'd (sprite-ai.art, sprixen, ludo.ai all rank themselves); those weighted low.
+
+## PixelLab — the unconvinced reaction is typical
+- Almost all YouTube content is **first-party** (PixelLab's own channel: tutorials, shorts, game-jam demo). No groundswell of independent "this changed my pipeline" videos — that asymmetry is itself a data point.
+- Even friendly coverage concedes: results "noticeably better at larger sizes", **16×16-and-under a known weakness** (thepixelnaut.com); "small details drift" across animation frames and directional views (techsy.io tested comparison); works best with "fairly standard character proportions", struggles with stylized/subtle-palette briefs; verdict "more 'impressive demo' than 'industry standard'".
+- Head-to-head: "Retro Diffusion wins for raw output quality and price, with the model understanding pixel art rules in a way PixelLab's general output doesn't always match" (gamedevaihub.com/retro-diffusion-vs-pixellab). PixelLab's one uncontested win: rotation/8-direction + skeleton animation pipeline.
+- A cute-chunky, strict-16-color, 16–32px brief hits ALL of PixelLab's documented weak spots at once.
+
+## Retro Diffusion — best raw pixel output + real palette locking
+- By Astropulse (working pixel artist; models trained on licensed/consented work; invented K-Centroid downscaling). First-class palette enforcement (upload the palette, API `palette` param), native small-size models incl. a dedicated improved 16×16 model, `game asset`/`character turnaround` styles.
+- Third-party consensus: "genuinely usable assets… significantly closer to handcrafted quality"; cheapest path to true pixel art (pay-per-credit, no subscription).
+- Caveats: animation NOT push-button — users "still nudge frames, fix sliding feet, unify palettes by hand"; the $65 Aseprite extension lags the website (buy web credits first); real forum users (OTLand) found it great for items/tiles, weaker for characters.
+
+## Everything else
+- **Scenario**: best custom-LoRA consistency story but images-only, no sprite/animation pipeline; now hosts RD models anyway.
+- **Sprite-AI + 2025-26 newcomers (pixie.haus, PixExact, LlamaGen PixelBox)**: all praise self-published; zero independent testimony found. Watch, don't buy.
+- **Local ComfyUI (RTX 3070 8GB)**: viable & free — SDXL + nerijs Pixel Art XL LoRA (8 steps, then 8× nearest-neighbor downscale; community favorite), Flux GGUF Q4 + pixel LoRAs fits 8GB; spritesheet LoRAs (svntax-dev 4-walk) give rough drafts only. Frame-to-frame consistency "pure luck".
+- **GPT-4o/gpt-image**: for concepts/keyframe grids only; companion cleanup tools exist because raw output isn't pixel-true (KennethJAllen/proper-pixel-art, RD's free Pixel Art Fixer, K-Centroid).
+
+## The consensus asset-type split
+- **AI wins:** items/icons/props, tiles & textures (with grid-snap cleanup), portraits/large art (64px+), concept & palette studies.
+- **AI loses:** 16px character animation frames, frame-to-frame consistency, one specific character across directions, strict ≤16-color adherence without post-quantize. Practitioner quotes: "manual cleanup takes longer than drawing sprites yourself" (small sprites); "consistency between frames is pure luck". The HN "pixel art is one-shotted by AI now" thread was rebutted in its own comments on grid-adherence grounds.
+
+## Shipped-with workflows
+1. **Retro Diffusion web → Aseprite finish** (best fit): generate bases at 2–4× target size, palette uploaded; K-Centroid downscale; index to palette; hand-fix silhouette + the 2–4 frames per action.
+2. **GPT-4o keyframe grids → pixel-fixer tools → hand-pixel final** at target size using output as reference.
+3. **Local ComfyUI for bulk tiles/props** (free on the 3070), quantize to palette after.
+
+## Ranked for RUMBLE (16–32px chunky, locked 16 colors, keyframes, solo dev)
+1. Retro Diffusion web credits — hero/enemy BASES, items, tile ideas
+2. Hand-pixel final animation frames over AI keyframes (hours, not weeks, at 3–4 frames/action — engine already does squash/blink/bob procedurally)
+3. Local ComfyUI free for tiles/props/backgrounds
+4. GPT-4o for concept sheets + silhouette brainstorming
+5. PixelLab free tier only — retry solely for 8-direction rotation of a LARGER (48px+) sprite, its one documented win
+
+Evidence gaps disclosed: no direct YouTube-comment mining possible; Reddit sentiment inferred from indexed fragments; newcomers unverified.
+
