@@ -14,10 +14,12 @@ export class BullhornBeetle {
     this.body = new Body(x, y, 40, 26);
     this.hp = MAX_HP;
     this.maxHp = MAX_HP;
+    this.dispHp = MAX_HP;   // HUD bar chips away toward hp
     this.dead = false;
     this.awake = false;
     this.state = 'sleep';
     this.timer = 0;
+    this.zzT = 0;           // sleep bubbles
     this.dir = -1; // sprite faces left
     this.flashT = 0;
     this.contactDmg = 1;
@@ -50,22 +52,54 @@ export class BullhornBeetle {
 
   die(game) {
     this.dead = true;
-    this.state = 'dying'; this.timer = 1.2;
+    this.state = 'dying'; this.timer = 1.3;
+    this._boomT = 0;
     game.hitstop(0.1);
     game.camera.addTrauma(0.9);
     sfx.bossDie();
-    for (let i = 0; i < 3; i++) {
-      game.particles.burst(this.cx + (i - 1) * 12, this.cy, 16, { speed: 150, color: PAL.enemy, life: 0.5 });
-    }
-    game.onBossDefeated(this);
   }
 
   update(dt, game) {
-    if (this.dead) return;
+    this.dispHp += (this.hp - this.dispHp) * Math.min(1, dt * 5);
+    if (this.dead) {
+      // staged death: popcorn explosions, then the finale spawns the trophy
+      if (this.state === 'dying' && this.timer > 0) {
+        this.timer -= dt;
+        this.flashT = 0.05;
+        this._boomT -= dt;
+        if (this._boomT <= 0) {
+          this._boomT = 0.16;
+          const bx = this.cx + (Math.random() - 0.5) * 36;
+          const by = this.cy + (Math.random() - 0.5) * 20;
+          game.particles.burst(bx, by, 10, { speed: 120, color: Math.random() < 0.5 ? PAL.enemy : PAL.beeAccent, life: 0.4 });
+          game.camera.addTrauma(0.25);
+          sfx.bossHit();
+        }
+        if (this.timer <= 0) {
+          for (let i = 0; i < 3; i++) {
+            game.particles.burst(this.cx + (i - 1) * 14, this.cy, 18, { speed: 170, color: PAL.enemy, life: 0.55 });
+          }
+          game.particles.burst(this.cx, this.cy, 12, { speed: 90, color: '#ffffff', life: 0.4, add: true });
+          game.camera.addTrauma(0.8);
+          game.hitstop(0.08);
+          game.onBossDefeated(this);
+        }
+      }
+      return;
+    }
     this.flashT -= dt;
     const b = this.body;
     const p = game.player;
     const room = game.room;
+
+    // sleeping: breathing bubbles drift up until woken
+    if (this.state === 'sleep') {
+      this.zzT -= dt;
+      if (this.zzT <= 0) {
+        this.zzT = 1.1;
+        game.particles.spawn({ x: this.cx - 14, y: b.y - 2, vx: -4, vy: -12, size: 2, color: PAL.dewHalo, life: 1.4, alpha: 0.7, add: true });
+      }
+    }
 
     // gravity always
     b.vy = Math.min(b.vy + C.gravity * dt, C.maxFall);

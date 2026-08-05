@@ -63,6 +63,7 @@ export class Game {
     this.stats = { deaths: 0, playT: 0 };
     this.loadLevel('level1');
     this.state = 'play';
+    this.transitionT = 0.25; this.transitionPhase = 'in'; // fade in from the title
   }
 
   continueRun() {
@@ -329,6 +330,15 @@ export class Game {
 
   stepDemoEnd(dt) {
     this.particles.update(dt);
+    // confetti drizzle in the palette
+    if (Math.random() < 0.35) {
+      const colors = [PAL.bee, PAL.beeAccent, PAL.dewHalo, PAL.leafLight, PAL.enemy];
+      this.particles.spawn({
+        x: Math.random() * C.VIEW_W + this.camera.x, y: this.camera.y - 4,
+        vx: (Math.random() - 0.5) * 30, vy: 30 + Math.random() * 40, g: 20, drag: 0.5,
+        size: 2, color: colors[(Math.random() * colors.length) | 0], life: 3.5, alpha: 0.9,
+      });
+    }
     if (this.input.pressed('confirm') || this.input.pressed('shoot') || this.input.pressed('jump')) {
       this.hasSave = true;
       this.titleSel = 0;
@@ -515,7 +525,7 @@ export class Game {
     if (this.boss) this.boss.render(ctx, this.camera);
     if (!this.player.dead && this.state !== 'dead') this.player.render(ctx, this.camera, this);
     this.projectiles.render(ctx, this.camera);
-    this.particles.render(ctx);
+    this.particles.render(ctx, this.camera);
 
     drawForeground(ctx, this.camera, this.room, this.time);
     drawHud(ctx, this);
@@ -546,6 +556,10 @@ export class Game {
       drawText(ctx, this.flags.hat ? 'HAT ACQUIRED. TRUE ENDING.' : 'SECRET: THE ACORN CAP AWAITS...', C.VIEW_W / 2, 112, PAL.leafHi, { align: 'center' });
       drawText(ctx, 'WISHLIST RUMBLE ON STEAM!', C.VIEW_W / 2, 132, PAL.beeAccent, { align: 'center' });
       drawText(ctx, 'Z: BACK TO TITLE', C.VIEW_W / 2, 152, PAL.bgLight, { align: 'center' });
+      // the champions flank the exit prompt, under the confetti
+      drawSprite(ctx, 'player.idle', Math.floor(this.time * 8) % 4, C.VIEW_W / 2 - 78, 172);
+      drawSprite(ctx, 'props.trophy', 0, C.VIEW_W / 2 + 78, 171);
+      this.particles.render(ctx, this.camera);
     }
 
     // transition fade (eased out/in over 2×250 ms)
@@ -558,12 +572,18 @@ export class Game {
       ctx.fillRect(0, 0, C.VIEW_W, C.VIEW_H);
       ctx.globalAlpha = 1;
     }
-    // death fade
+    // death iris wipe closing on the player
     if (this.state === 'dead') {
-      ctx.globalAlpha = Math.min(0.85, Math.max(0, 1 - this.deathT));
+      const px = Math.round(this.player.cx - this.camera.ox());
+      const py = Math.round(this.player.cy - this.camera.oy());
+      const r = Math.max(0, this.deathT * 320);
+      ctx.save();
       ctx.fillStyle = PAL.bgDeep;
-      ctx.fillRect(0, 0, C.VIEW_W, C.VIEW_H);
-      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.rect(0, 0, C.VIEW_W, C.VIEW_H);
+      ctx.arc(px, py, r, 0, Math.PI * 2, true);
+      ctx.fill('evenodd');
+      ctx.restore();
     }
   }
 
@@ -592,7 +612,15 @@ export class Game {
     drawText(ctx, 'A BEE WITHOUT WINGS. A GUN FULL OF PEAS.', C.VIEW_W / 2, 62, PAL.ui, { align: 'center' });
     drawText(ctx, 'STEAM SHOWCASE DEMO', C.VIEW_W / 2, 72, PAL.beeAccent, { align: 'center' });
 
-    const opts = this.hasSave ? ['CONTINUE', 'NEW GAME'] : ['START'];
+    let contLabel = 'CONTINUE';
+    if (this.hasSave) {
+      const s = loadSave();
+      if (s?.stats) {
+        const t = Math.floor(s.stats.playT || 0);
+        contLabel = `CONTINUE (${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}, ${s.tickets ?? 0} TKT)`;
+      }
+    }
+    const opts = this.hasSave ? [contLabel, 'NEW GAME'] : ['START'];
     opts.forEach((o, i) => {
       const sel = i === this.titleSel;
       drawText(ctx, (sel ? '> ' : '') + o, C.VIEW_W / 2, 92 + i * 10, sel ? PAL.dewHalo : PAL.bgLight, { align: 'center' });

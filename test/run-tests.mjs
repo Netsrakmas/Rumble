@@ -383,7 +383,7 @@ async function main() {
     report('perf: worst frame < 50ms', perf.worst < 50, `worst=${perf.worst.toFixed(1)}ms`);
     // finish the fight (direct damage to keep the harness fast + deterministic)
     await page.evaluate(() => { const g = window.game; while (g.boss && !g.boss.dead) g.boss.onHit(g, 1, 0); });
-    await settle(400);
+    await settle(2000); // staged death sequence runs ~1.3s before the trophy drops
     const afterBoss = await page.evaluate(() => ({
       unlocked: window.game.room.extraSolids.length === 0,
       trophy: window.game.entities.some(e => e.constructor.name === 'Trophy'),

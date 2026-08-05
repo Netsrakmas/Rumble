@@ -54,13 +54,16 @@ export class Particles {
     }
   }
 
-  render(ctx) {
+  // cam is optional: world rendering passes the camera; screen-space callers
+  // (title screen) omit it
+  render(ctx, cam = null) {
+    const ox = cam ? cam.ox() : 0, oy = cam ? cam.oy() : 0;
     for (const p of this.list) {
       const a = p.fade ? p.alpha * (1 - p.t / p.life) : p.alpha;
       ctx.globalAlpha = a;
       if (p.add) ctx.globalCompositeOperation = 'lighter';
       ctx.fillStyle = p.color;
-      ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+      ctx.fillRect(Math.round(p.x - ox), Math.round(p.y - oy), p.size, p.size);
       if (p.add) ctx.globalCompositeOperation = 'source-over';
     }
     ctx.globalAlpha = 1;

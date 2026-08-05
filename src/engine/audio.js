@@ -87,11 +87,24 @@ function scheduleHat(t) {
 export function playMusic(name) {
   if (currentTheme === name) return;
   if (!ac) { pendingTheme = name; return; } // starts on first input
+  const hadTheme = !!currentTheme;
   stopMusic();
   const theme = THEMES[name];
   if (!theme) return;
   currentTheme = name;
   ensureNoise();
+  // crossfade: dip the bus, then ramp back as the new theme starts
+  const target = 0.12 * getSettings().music;
+  const now = ac.currentTime;
+  musicGain.gain.cancelScheduledValues(now);
+  if (hadTheme) {
+    musicGain.gain.setValueAtTime(musicGain.gain.value, now);
+    musicGain.gain.linearRampToValueAtTime(0.001, now + 0.15);
+    musicGain.gain.linearRampToValueAtTime(target, now + 0.7);
+  } else {
+    musicGain.gain.setValueAtTime(0.001, now);
+    musicGain.gain.linearRampToValueAtTime(target, now + 0.6);
+  }
   const stepDur = 60 / theme.bpm / 4;
   stepIdx = 0;
   nextStepT = ac.currentTime + 0.06;

@@ -369,6 +369,22 @@ export class Player {
     const opts = { flip: this.facing < 0, sx: this.sqX, sy: this.sqY, white: this.hurtT > 0.15 };
     drawSprite(ctx, this.anim.name, this.anim.frame(), x, y - 1, opts);
 
+    // Burr Boots show on the feet once bought
+    if (game.flags.burrBoots && this.rollT <= 0 && !this.crawling) {
+      ctx.fillStyle = PAL.beeAccent;
+      ctx.fillRect(x - 5, y - 3, 3, 2);
+      ctx.fillRect(x + 1, y - 3, 3, 2);
+    }
+
+    // charge progress bar above the head while charging
+    if (this.charging && this.chargeT > 0.05) {
+      const w = Math.round(Math.min(1, this.chargeT / C.chargeTime) * 12);
+      ctx.fillStyle = PAL.outline;
+      ctx.fillRect(x - 7, y - 30, 14, 3);
+      ctx.fillStyle = this.chargeT >= C.chargeTime ? PAL.leafHi : PAL.leafLight;
+      ctx.fillRect(x - 6, y - 29, w, 1);
+    }
+
     // hat (cosmetic, from vending machine)
     if (game.flags.hat && this.rollT <= 0 && !this.crawling) {
       const hatY = y - 1 - 20 - (this.anim.name === 'player.run' && this.anim.frame() % 3 === 1 ? 1 : 0);

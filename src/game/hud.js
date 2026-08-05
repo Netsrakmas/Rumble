@@ -71,6 +71,9 @@ export function drawHud(ctx, game) {
     ctx.fillRect(x - 1, y - 1, w + 2, 6);
     ctx.fillStyle = PAL.outline;
     ctx.fillRect(x, y, w, 4);
+    // white chip segment drains toward the real hp (finished-game bar feel)
+    ctx.fillStyle = PAL.ui;
+    ctx.fillRect(x, y, Math.max(0, Math.round(w * game.boss.dispHp / game.boss.maxHp)), 4);
     ctx.fillStyle = PAL.enemy;
     ctx.fillRect(x, y, Math.max(0, Math.round(w * game.boss.hp / game.boss.maxHp)), 4);
     drawText(ctx, 'BULLHORN BEETLE', C.VIEW_W / 2, y - 8, PAL.ui, { align: 'center' });
