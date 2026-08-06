@@ -421,12 +421,23 @@ export class Game {
       { label: `MUSIC: ${Math.round(s.music * 100)}`, adj: (d) => { setSetting('music', Math.min(1, Math.max(0, s.music + d * 0.25))); applyAudioSettings(); } },
       { label: `SFX: ${Math.round(s.sfx * 100)}`, adj: (d) => { setSetting('sfx', Math.min(1, Math.max(0, s.sfx + d * 0.25))); applyAudioSettings(); } },
       { label: `SCREEN SHAKE: ${s.shake ? 'ON' : 'OFF'}`, adj: () => { setSetting('shake', s.shake ? 0 : 1); }, act: () => { setSetting('shake', s.shake ? 0 : 1); } },
+      ...['jump', 'shoot', 'melee', 'roll'].map(a => ({
+        label: `REBIND ${a.toUpperCase()}${this.input.binds[a] ? ' (+' + this.input.bindLabel(a) + ')' : ''}`,
+        act: () => {
+          this.captureAction = a;
+          this.input.captureNext((code) => {
+            if (code) this.input.rebind(a, code);
+            this.captureAction = null;
+          });
+        },
+      })),
       { label: 'RESTART AT CHECKPOINT', act: () => { this.paused = false; this.respawn(); } },
       { label: 'QUIT TO TITLE', act: () => { this.paused = false; this.hasSave = true; this.titleSel = 0; this.state = 'title'; playMusic('title'); } },
     ];
   }
 
   stepPause() {
+    if (this.captureAction) return; // waiting for the rebind keypress
     const items = this.pauseItems();
     if (this.input.pressed('down')) { this.pauseSel = (this.pauseSel + 1) % items.length; sfx.ticket(); }
     if (this.input.pressed('up')) { this.pauseSel = (this.pauseSel + items.length - 1) % items.length; sfx.ticket(); }
@@ -617,13 +628,19 @@ export class Game {
     if (this.paused) {
       ctx.fillStyle = 'rgba(46,34,47,0.82)';
       ctx.fillRect(0, 0, C.VIEW_W, C.VIEW_H);
-      drawText(ctx, 'PAUSED', C.VIEW_W / 2, 34, PAL.dewHalo, { align: 'center', scale: 2 });
+      drawText(ctx, 'PAUSED', C.VIEW_W / 2, 30, PAL.dewHalo, { align: 'center', scale: 2 });
       this.pauseItems().forEach((it, i) => {
         const sel = i === this.pauseSel;
-        drawText(ctx, (sel ? '> ' : '') + it.label + (it.adj && sel ? ' <>' : ''), C.VIEW_W / 2, 62 + i * 12,
+        drawText(ctx, (sel ? '> ' : '') + it.label + (it.adj && sel ? ' <>' : ''), C.VIEW_W / 2, 52 + i * 11,
           sel ? PAL.ui : PAL.bgLight, { align: 'center' });
       });
       drawText(ctx, 'ARROWS: NAVIGATE/ADJUST   Z: SELECT   ESC: RESUME', C.VIEW_W / 2, C.VIEW_H - 16, PAL.bgLight, { align: 'center' });
+      if (this.captureAction) {
+        ctx.fillStyle = 'rgba(46,34,47,0.9)';
+        ctx.fillRect(0, C.VIEW_H / 2 - 18, C.VIEW_W, 36);
+        drawText(ctx, `PRESS A KEY FOR ${this.captureAction.toUpperCase()}`, C.VIEW_W / 2, C.VIEW_H / 2 - 8, PAL.dewHalo, { align: 'center' });
+        drawText(ctx, 'ESC: CANCEL', C.VIEW_W / 2, C.VIEW_H / 2 + 4, PAL.bgLight, { align: 'center' });
+      }
     }
 
     if (this.state === 'demoEnd') {

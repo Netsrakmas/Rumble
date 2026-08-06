@@ -49,6 +49,7 @@ export const MANIFEST = {
     'props.checkpoint': { sheet: 'props', frames: grid(0, 0, 16, 24, 4), fps: 6, pivot: [8, 23], loop: true },
     'props.vending':    { sheet: 'props', frames: [[64, 0, 24, 32]], fps: 1, pivot: [12, 31] },
     'props.door':       { sheet: 'props', frames: [[88, 0, 16, 32]], fps: 1, pivot: [8, 31] },
+    'props.doorOpen':   { sheet: 'props', frames: [[32, 32, 16, 32]], fps: 1, pivot: [8, 31] },
     'props.pedestal':   { sheet: 'props', frames: [[104, 0, 16, 16]], fps: 1, pivot: [8, 15] },
     'props.gun':        { sheet: 'props', frames: [[120, 0, 16, 16]], fps: 1, pivot: [8, 15] },
     'props.ticket':     { sheet: 'props', frames: [[136, 0, 8, 8]], fps: 1, pivot: [4, 7] },

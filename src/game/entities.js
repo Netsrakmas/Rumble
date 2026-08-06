@@ -252,11 +252,17 @@ export class Door {
     this.locked = false;   // boss lock
     this.denyT = 0;
     this.armed = false;    // arms once the player is clear — stops instant re-trigger on arrival
+    this.open = false;     // swings open when the player draws near
   }
   rect() { return { x: this.tx * C.TILE + 2, y: (this.ty - 1) * C.TILE, w: 12, h: 32 }; }
   update(dt, game) {
     this.denyT -= dt;
     if (game.transitionT > 0 || game.player.dead) return;
+    // swing open when the player approaches (and shut when they leave)
+    const near = Math.abs(game.player.cx - this.x) < 34 && Math.abs(game.player.cy - (this.y - 16)) < 40;
+    const canOpen = near && !this.locked && (!this.def.requires || game.flags[this.def.requires]);
+    if (canOpen && !this.open) { this.open = true; sfx.door(); }
+    else if (!near && this.open) this.open = false;
     if (!overlaps(this.rect(), game.player.hurtbox())) { this.armed = true; return; }
     if (!this.armed || this.locked) return;
     const req = this.def.requires;
@@ -273,7 +279,7 @@ export class Door {
     game.enterDoor(this);
   }
   render(ctx, cam, game) {
-    drawSprite(ctx, 'props.door', 0, this.x - cam.ox(), this.y - 1 - cam.oy());
+    drawSprite(ctx, this.open ? 'props.doorOpen' : 'props.door', 0, this.x - cam.ox(), this.y - 1 - cam.oy());
     if (this.locked) { // vine bars while boss lives
       ctx.fillStyle = PAL.leafDark;
       for (let i = 0; i < 3; i++) ctx.fillRect(this.x - 6 - cam.ox(), this.y - 28 + i * 9 - cam.oy(), 12, 3);

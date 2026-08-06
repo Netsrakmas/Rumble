@@ -26,6 +26,8 @@ const PAD_BTN = {
 };
 const STICK_DEADZONE = 0.35;
 
+import { getSettings, setSetting } from './save.js';
+
 export class Input {
   constructor(onFirstInput) {
     this.held = new Set();      // keyboard-held
@@ -33,9 +35,21 @@ export class Input {
     this.edge = new Set();      // filled by events + pad polling, drained per step
     this.pressedSet = new Set();
     this.gamepadActive = false; // true once any pad input is seen (for UI hints)
+    this.binds = getSettings().binds || {}; // {action: code} user additions
+    this._customMap = {};       // code -> action, rebuilt from binds
+    for (const [a, c] of Object.entries(this.binds)) this._customMap[c] = a;
+    this._capture = null;       // rebind mode: next keydown goes here
     this._first = onFirstInput;
     addEventListener('keydown', (e) => {
-      const b = MAP[e.code];
+      if (this._capture) {
+        e.preventDefault();
+        const cb = this._capture;
+        this._capture = null;
+        if (e.code !== 'Escape') cb(e.code);
+        else cb(null);
+        return;
+      }
+      const b = this._customMap[e.code] || MAP[e.code];
       if (!b) return;
       e.preventDefault();
       this._firstInput();
@@ -43,7 +57,7 @@ export class Input {
       this.held.add(b);
     });
     addEventListener('keyup', (e) => {
-      const b = MAP[e.code];
+      const b = this._customMap[e.code] || MAP[e.code];
       if (!b) return;
       e.preventDefault();
       this.held.delete(b);
@@ -88,4 +102,15 @@ export class Input {
 
   down(b) { return this.held.has(b) || this.padHeld.has(b); }
   pressed(b) { return this.pressedSet.has(b); }
+
+  // rebinding: capture the next keydown for an action (Escape cancels).
+  // Custom binds ADD an alternate key; the defaults always keep working.
+  captureNext(cb) { this._capture = cb; }
+  rebind(action, code) {
+    for (const [c, a] of Object.entries(this._customMap)) if (a === action) delete this._customMap[c];
+    this.binds[action] = code;
+    this._customMap[code] = action;
+    setSetting('binds', this.binds);
+  }
+  bindLabel(action) { return this.binds[action] ? this.binds[action].replace(/^Key|^Arrow/, '') : '-'; }
 }

@@ -365,6 +365,15 @@ function genProps(def) {
   R(g, 1, 34, 14, 8, PAL.outline);
   R(g, 2, 35, 12, 6, '#7a5535');
   R(g, 3, 37, 8, 1, PAL.outline); R(g, 3, 39, 6, 1, PAL.outline);
+  // open door 16×32 at (32,32) — swung inward, warm light spilling out
+  R(g, 32, 32, 16, 32, PAL.leafDark);
+  R(g, 34, 36, 12, 28, PAL.outline);
+  R(g, 35, 38, 10, 26, PAL.bgLight);              // lit interior
+  R(g, 36, 40, 8, 22, PAL.leafHi);                // warm glow core
+  R(g, 37, 42, 6, 18, PAL.ui);
+  R(g, 34, 38, 2, 26, PAL.bgDeep);                // swung door edge
+  R(g, 33, 34, 14, 2, PAL.leafMid);               // mossy lintel
+  R(g, 34, 33, 4, 1, PAL.leafLight);
   // Spore Shroom trophy 16×16 at (16,32)
   R(g, 22, 40, 4, 7, PAL.ui);
   R(g, 18, 34, 12, 7, PAL.outline);
