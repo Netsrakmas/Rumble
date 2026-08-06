@@ -74,13 +74,15 @@ function drawRumble(g, ox, oy, p = {}) {
   R(g, 4, by + 1, 2, 2, PAL.dewHalo);
   R(g, 5, by + 4, 1, 2, PAL.outline);
 
-  // body: rounded, striped, warm-shaded underside
+  // body: rounded, striped, warm-shaded underside, back-edge volume
   RR(g, 6, by, 12, 10, PAL.outline);
   RR(g, 7, by + 1, 10, 8, PAL.bee);
   R(g, 9, by + 1, 2, 8, PAL.outline);               // stripe
   R(g, 13, by + 1, 2, 8, PAL.outline);              // stripe
   R(g, 8, by + 8, 8, 1, PAL.beeAccent);             // under-shadow
+  R(g, 7, by + 2, 1, 6, PAL.beeAccent);             // back-edge shade (volume)
   R(g, 8, by + 1, 6, 1, PAL.ui);                    // top sheen
+  R(g, 16, by + 3, 1, 2, PAL.bee);                  // little arm nub on the gun side
 
   // scarf — the facing/velocity read (drawn under the head, over the body)
   const sw = p.wall ? -3 : air ? -2 : (p.legPhase != null ? -1 : 0);
@@ -104,8 +106,13 @@ function drawRumble(g, ox, oy, p = {}) {
     R(g, 8, ey - 1, 3, 5, '#ffffff');               // eyes: tall, bright
     R(g, 14, ey - 1, 3, 5, '#ffffff');
     const px = air === 1 ? 0 : 1;                   // pupils look ahead, up at apex
-    R(g, 9 + px, ey + (air === -1 ? 0 : 1), 2, 2, PAL.outline);
-    R(g, 15 + px, ey + (air === -1 ? 0 : 1), 2, 2, PAL.outline);
+    const pyy = ey + (air === -1 ? 0 : 1);
+    R(g, 9 + px, pyy, 2, 2, PAL.outline);
+    R(g, 15 + px, pyy, 2, 2, PAL.outline);
+    R(g, 9 + px, pyy, 1, 1, PAL.bgLight);           // pupil glints — instant life
+    R(g, 15 + px, pyy, 1, 1, PAL.bgLight);
+    R(g, 6, ey + 5, 4, 1, PAL.beeAccent);           // chin shading
+    R(g, 14, ey + 5, 4, 1, PAL.beeAccent);
     R(g, 7, ey + 4, 1, 1, PAL.beeAccent);           // blushes
     R(g, 17, ey + 4, 1, 1, PAL.beeAccent);
     R(g, 12, ey + 5, 2, 1, PAL.outline);            // little smile
@@ -382,6 +389,7 @@ function genEnemies(def) {
     RR(g, x + 1 - puff / 2, 5 - puff, 14 + puff, 10 + puff, PAL.outline);
     RR(g, x + 2 - puff / 2, 6 - puff, 12 + puff, 8 + puff, PAL.enemy);
     R(g, x + 3, 6 - puff, 8, 1, '#e8a4b8');      // cap sheen
+    R(g, x + 3, 13 - puff, 10, 1, '#a34d63');    // cap under-rim shade
     R(g, x + 4, 8 - puff, 2, 2, PAL.ui);         // spots
     R(g, x + 10, 10 - puff, 2, 2, PAL.ui);
     R(g, x + 7, 7 - puff, 1, 1, PAL.ui);
@@ -404,6 +412,9 @@ function genEnemies(def) {
     RR(g, x + 4, 8, 10, 6, PAL.enemy);
     R(g, x + 5, 8, 7, 1, '#e8a4b8');              // shell sheen
     R(g, x + 8, 9, 1, 5, PAL.outline);            // shell seam
+    R(g, x + 10, 10, 1, 1, PAL.outline);          // shell spots
+    R(g, x + 12, 9, 1, 1, PAL.outline);
+    R(g, x + 6, 12, 1, 1, '#a34d63');
     R(g, x + 11, 12, 3, 2, '#a34d63');            // rump shade
     R(g, x + 1, 9, 4, 3, PAL.outline);            // snout
     R(g, x + 1, 10, 2, 1, PAL.enemy);
@@ -422,6 +433,7 @@ function genEnemies(def) {
     RR(g, x + 4, 9, 8, 6, PAL.outline);
     RR(g, x + 5, 10, 6, 4, PAL.enemy);
     R(g, x + 6, 10, 3, 1, '#e8a4b8');             // sheen
+    R(g, x + 6, 13, 4, 1, '#a34d63');             // belly shade
     R(g, x + 9, 11, 2, 2, '#ffffff');             // eye
     R(g, x + 10, 12, 1, 1, PAL.outline);
     R(g, x + 3, 12, 1, 1, PAL.outline);           // stinger tail
@@ -493,12 +505,18 @@ function drawBull(g, ox, p = {}) {
     R(g, 0 - lean, by + 12, 2, 1, PAL.outline);    // nostril
     if (p.scrape || p.lean > 2) R(g, -2 - lean, by + 12, 2, 2, PAL.ui); // snort puff
   }
-  // THE bullhorn: big sweeping curve with highlight
+  // THE bullhorn: big sweeping curve with ridges and highlight
   R(g, -3 - lean, by + 3, 5, 3, PAL.outline);
   R(g, -6 - lean, by + 1, 5, 3, PAL.outline);
   R(g, -8 - lean, by - 2, 4, 3, PAL.outline);
   R(g, -7 - lean, by - 1, 2, 1, PAL.ui);
   R(g, -5 - lean, by + 1, 3, 1, PAL.ui);           // horn shine
+  R(g, -4 - lean, by + 3, 1, 2, '#a34d63');        // ridge grooves
+  R(g, -6 - lean, by + 2, 1, 2, '#a34d63');
+  // shell spot pattern between the plate seams
+  R(g, 17 - lean, by + 6, 2, 2, '#a34d63');
+  R(g, 27 - lean, by + 9, 2, 2, '#a34d63');
+  R(g, 36 - lean, by + 5, 2, 2, '#a34d63');
   if (p.stun) { // dizzy sparks orbiting
     R(g, 2, by - 6, 2, 2, PAL.dewHalo); R(g, 12, by - 9, 2, 2, PAL.dewHalo);
     R(g, 22, by - 6, 2, 2, PAL.dewHalo); R(g, 7, by - 4, 1, 1, '#ffffff');
