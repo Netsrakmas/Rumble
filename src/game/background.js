@@ -40,7 +40,19 @@ export function drawBackground(ctx, cam, room, t) {
     ctx.fillRect(0, Math.floor(i * C.VIEW_H / BANDS), C.VIEW_W, Math.ceil(C.VIEW_H / BANDS) + 1);
   }
 
-  // L3: far canopy blobs hanging from the top (0.3×)
+  // dawn glow breaking through the canopy, top-right (very soft, additive)
+  if (dark < 0.3) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const dg = ctx.createRadialGradient(C.VIEW_W * 0.78, 8, 8, C.VIEW_W * 0.78, 8, 120);
+    dg.addColorStop(0, 'rgba(205,223,108,0.07)');
+    dg.addColorStop(1, 'rgba(205,223,108,0)');
+    ctx.fillStyle = dg;
+    ctx.fillRect(0, 0, C.VIEW_W, C.VIEW_H);
+    ctx.restore();
+  }
+
+  // L3: far canopy blobs hanging from the top (0.3×), with trailing vines
   const ox3 = cam.x * 0.3;
   ctx.fillStyle = PAL.bgMid;
   const SPACING = 56;
@@ -52,6 +64,13 @@ export function drawBackground(ctx, cam, room, t) {
     ctx.beginPath();
     ctx.ellipse(x, -6, w / 2, h, 0, 0, Math.PI * 2);
     ctx.fill();
+    if (r > 0.4) { // vine strands trailing off the canopy
+      const vx = Math.round(x + (r - 0.5) * w * 0.5);
+      const vlen = 12 + r * 26;
+      ctx.fillRect(vx, h - 8, 1, vlen);
+      ctx.fillRect(vx - 1, h - 8 + vlen - 3, 3, 2); // leaf tuft at the tip
+      if (r > 0.75) ctx.fillRect(vx + 8, h - 12, 1, vlen * 0.6);
+    }
   }
   // distant stalks
   ctx.fillStyle = PAL.bgLight;
@@ -92,6 +111,15 @@ export function drawBackground(ctx, cam, room, t) {
       ctx.ellipse(x + 2, C.VIEW_H - hgt, 10 + r * 9, 6 + r * 4, 0, Math.PI, Math.PI * 2);
       ctx.fill();
       if (r > 0.6) { ctx.fillRect(x + 12, C.VIEW_H - hgt * 0.5, 3, hgt * 0.5); ctx.beginPath(); ctx.ellipse(x + 13, C.VIEW_H - hgt * 0.5, 7, 4, 0, Math.PI, Math.PI * 2); ctx.fill(); }
+    } else if (r > 0.3 && r < 0.48) {
+      // fern frond: fanned blades from a common base
+      for (let b = -2; b <= 2; b++) {
+        ctx.save();
+        ctx.translate(x + 2, C.VIEW_H);
+        ctx.rotate(b * 0.28);
+        ctx.fillRect(-1, -hgt * (0.7 - Math.abs(b) * 0.1), 2, hgt * (0.7 - Math.abs(b) * 0.1));
+        ctx.restore();
+      }
     } else {
       // stem + head silhouette (giant grass / seed heads)
       ctx.fillRect(x, C.VIEW_H - hgt + oy2 * 0, 3, hgt);

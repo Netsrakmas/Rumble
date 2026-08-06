@@ -181,27 +181,54 @@ function h2(x, y) { let n = x * 374761393 + y * 668265263; n = (n ^ (n >> 13)) *
 function drawSoilTile(g, ox, oy, mask, variant = 0) {
   // mask bits: 1=N present, 2=E, 4=S, 8=W (neighbor solid)
   const N = mask & 1, E = mask & 2, S = mask & 4, W = mask & 8;
-  // seamless body — shading only on EXPOSED edges so joined tiles read as one mass
+  // 3-tone depth: lit face, packed-leaf midtone, dark buried lower body.
+  // Shading only on EXPOSED edges so joined tiles read as one mass.
+  // NOTE: all drawing stays inside the 16×16 cell (sheet-bleed rule).
   R(g, ox, oy, 16, 16, PAL.leafMid);
-  // interior texture: packed-leaf clumps instead of lone speckles
-  for (let i = 0; i < 4; i++) {
-    const rx = Math.floor(h2(mask * 7 + i, variant * 13 + i) * 11) + 2;
-    const ry = Math.floor(h2(variant * 5 + i, mask * 11 + i) * 10) + 3;
-    R(g, ox + rx, oy + ry, 2, 1, PAL.leafDark);            // leaf edge
-    R(g, ox + rx + 1, oy + ry + 1, 1, 1, PAL.leafDark);    // curled tip
-    if (h2(rx, ry) > 0.6) R(g, ox + rx, oy + ry - 1, 1, 1, PAL.leafLight); // catchlight
-    if (variant === 1 && i < 2) R(g, ox + rx - 1, oy + ry, 1, 1, PAL.farFoliage);
+  // brick-packed leaf texture: offset rows of leaf-edge dashes
+  for (let ry = 2; ry < 15; ry += 3) {
+    const off = ((ry / 3) | 0) % 2 ? 3 : 0;
+    for (let rx = off; rx < 15; rx += 6) {
+      const rr = h2(ox + rx * 3 + variant * 17, oy + ry * 5 + mask);
+      if (rr > 0.35) R(g, ox + rx + 1, oy + ry, 3, 1, PAL.leafDark);
+      if (rr > 0.82) R(g, ox + rx + 1, oy + ry - 1, 2, 1, PAL.leafLight); // catchlight
+      if (rr < 0.12 && N) R(g, ox + rx + 2, oy + ry + 1, 1, 1, PAL.farFoliage); // buried depth
+    }
   }
-  if (!W) { R(g, ox, oy, 1, 16, PAL.leafDark); R(g, ox + 1, oy, 1, 16, PAL.leafDark); }
-  if (!E) { R(g, ox + 15, oy, 1, 16, PAL.leafDark); R(g, ox + 14, oy, 1, 16, PAL.leafDark); }
-  if (!S) { R(g, ox, oy + 15, 16, 1, PAL.leafDark); R(g, ox + 1, oy + 13, 14, 2, PAL.leafDark); }
-  if (!N) { // grass lip — mandatory on every exposed top
+  if (variant > 0) { // buried pebble / root knot
+    const px = 4 + variant * 4, py = 6 + variant * 2;
+    R(g, ox + px, oy + py, 4, 3, PAL.farFoliage);
+    R(g, ox + px + 1, oy + py, 2, 1, PAL.bgLight);
+    R(g, ox + px, oy + py + 2, 4, 1, PAL.outline);
+  }
+  if (!W) { // exposed left: shade + root nubs
+    R(g, ox, oy, 2, 16, PAL.leafDark);
+    R(g, ox + 2, oy + Math.floor(h2(ox, mask) * 10) + 3, 1, 2, PAL.leafDark);
+    R(g, ox, oy + Math.floor(h2(ox, mask + 5) * 12) + 2, 1, 1, PAL.farFoliage);
+  }
+  if (!E) {
+    R(g, ox + 14, oy, 2, 16, PAL.leafDark);
+    R(g, ox + 13, oy + Math.floor(h2(oy, mask) * 10) + 3, 1, 2, PAL.leafDark);
+    R(g, ox + 15, oy + Math.floor(h2(oy, mask + 5) * 12) + 2, 1, 1, PAL.farFoliage);
+  }
+  if (!S) { // exposed underside: dark belly + hanging moss fringe
+    R(g, ox, oy + 14, 16, 2, PAL.leafDark);
+    R(g, ox, oy + 13, 16, 1, PAL.farFoliage);
+    for (let i = 1; i < 16; i += 3) {
+      if (h2(i, mask + 31) > 0.4) R(g, ox + i, oy + 12 - (h2(i, mask) > 0.7 ? 1 : 0), 1, 2, PAL.farFoliage);
+    }
+  }
+  if (!N) { // grass lip — mandatory on every exposed top, now with blades
     R(g, ox, oy, 16, 1, PAL.outline);
     R(g, ox, oy + 1, 16, 2, PAL.leafLight);
     for (let i = 0; i < 16; i += 2) {
-      if (h2(i, mask) > 0.5) R(g, ox + i, oy, 1, 2, PAL.leafLight);
-      if (h2(i, mask + 99) > 0.72) R(g, ox + i, oy + 1, 1, 1, PAL.leafHi); // dawn sparkle
+      const rr = h2(i, mask);
+      if (rr > 0.45) R(g, ox + i, oy, 1, 2, PAL.leafLight);          // blade tips over the outline
+      if (rr > 0.8) R(g, ox + i, oy + 3, 1, 1, PAL.leafLight);       // blade drooping over the edge
+      if (h2(i, mask + 99) > 0.7) R(g, ox + i, oy + 1, 1, 1, PAL.leafHi); // dawn sparkle
     }
+    R(g, ox + 2, oy + 3, 3, 1, PAL.leafDark);                        // shadow under the lip
+    R(g, ox + 9, oy + 3, 4, 1, PAL.leafDark);
   }
 }
 
@@ -213,11 +240,14 @@ function genTiles(def) {
   // variants of fully-surrounded
   drawSoilTile(g, 0, 16, 15, 1);
   drawSoilTile(g, 16, 16, 15, 2);
-  // oneway leaf platform (top half)
+  // oneway leaf platform: plush broad leaf with center vein & drooping ends
   R(g, 32, 16, 16, 1, PAL.outline);
   R(g, 32, 17, 16, 3, PAL.leafLight);
   R(g, 33, 20, 14, 2, PAL.leafMid);
-  R(g, 34, 22, 3, 1, PAL.leafDark); R(g, 43, 22, 3, 1, PAL.leafDark);
+  R(g, 32, 20, 1, 2, PAL.leafMid); R(g, 47, 20, 1, 2, PAL.leafMid); // drooping tips
+  R(g, 33, 22, 3, 1, PAL.leafDark); R(g, 44, 22, 3, 1, PAL.leafDark);
+  R(g, 39, 17, 2, 5, PAL.leafMid);                                   // center vein
+  R(g, 34, 18, 1, 1, PAL.leafHi); R(g, 44, 18, 1, 1, PAL.leafHi);   // dew glints
   // thorns — bright bramble; must read instantly as danger. NOTE: the frame
   // rect is (48,16)-(64,32); earlier versions drew into row 0 by mistake,
   // which left this tile fully transparent (the "invisible spikes" bug).
