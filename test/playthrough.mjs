@@ -1,10 +1,15 @@
 // playthrough.mjs — THE COMPLETABILITY PROOF for the Steam demo build.
 // A bot beats the entire demo start-to-finish using only real, human-possible
-// inputs (run, jump, crawl, gun-jump, wall-jump, shop) — no teleports on the
-// route. If any level edit makes the critical path impossible, this fails.
-// The boss's HP is drained via the damage model after real pellets are proven
-// to land (fight *mechanics* are covered by run-tests.mjs; this file proves
-// *traversal*). Usage: node test/playthrough.mjs
+// inputs (run, jump, crawl, gun-jump chains, roll corridor, wall-jump, shop)
+// — no teleports on the route. If any level edit makes the critical path
+// impossible, this fails. The boss's HP is drained via the damage model after
+// real pellets are proven to land (fight *mechanics* are covered by
+// run-tests.mjs; this file proves *traversal*). Usage: node test/playthrough.mjs
+//
+// Route (design pass 6): descent plateaus + forced gun-jump wall -> terraces
+// thorn strips + mandatory tier (1-chain) + door ledge (2-chain over trench)
+// -> cellar crawl/roll corridor -> atrium shop + phrased shaft -> ascent
+// phrased chimney -> boss (thorn-strip arena) -> mines -> demo end.
 
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
@@ -34,6 +39,7 @@ const log = await page.evaluate(async () => {
   const st = () => window.__test.state();
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const T = 16;
+  const feet = () => st().y + 14;
 
   async function tapZ(ms = 110) { K('KeyZ', true); await sleep(ms); K('KeyZ', false); }
   async function shootOnce() { K('KeyX', true); await sleep(40); K('KeyX', false); }
@@ -104,6 +110,28 @@ const log = await page.evaluate(async () => {
     K(dirKey, false);
   }
 
+  // gun-jump chain INTO a wall/ledge: hold dir so the wall pins us
+  // horizontally, full jump, then fire aimed-down shots near each apex.
+  // The recoil lifts us past the lip and the held direction pops us onto
+  // the top — exactly how a human plays a mandatory chain. Waits to land.
+  async function gunHop(dirKey = 'ArrowRight', shots = 1) {
+    K(dirKey, true);
+    await sleep(70);
+    K('KeyZ', true);      // HELD through the chain — releasing early cuts every
+    await sleep(270);     // lift short (releaseGravMult). Human technique.
+    for (let i = 0; i < shots; i++) {
+      K('ArrowDown', true); K('KeyX', true);
+      await sleep(50);
+      K('KeyX', false); K('ArrowDown', false);
+      await sleep(i < shots - 1 ? 230 : 120); // next shot near the lift's apex
+    }
+    K('KeyZ', false);
+    const t0 = performance.now();
+    while (!st().grounded && performance.now() - t0 < 2500) await sleep(40);
+    await sleep(80);
+    K(dirKey, false);
+  }
+
   // opposing-wall chimney climb until at/above targetFeet.
   // finishDir 'left'/'right': near the top, ride the final wall jump in that
   // direction and hold it until landing (how a human exits onto a side ledge).
@@ -144,7 +172,7 @@ const log = await page.evaluate(async () => {
         }
       }
       if (st().grounded && st().y + 14 <= targetFeet + 15) return true;
-      say(`CHIMNEY TIMEOUT at feet=${Math.round(st().y + 14)}`);
+      say(`CHIMNEY TIMEOUT at feet=${Math.round(st().y + 14)} held=[${[...window.game.input.held]}] hp=${st().hp}`);
       return false;
     } finally { K(dir, false); }
   }
@@ -164,32 +192,77 @@ const log = await page.evaluate(async () => {
   window.__test.start();
   await sleep(400);
 
-  // --- 1. DESCENT: over the blocks, crawl the tunnel, take the gun, door A
+  // --- 1. DESCENT: forced jump over the root step, crawl the tunnel down
+  // the plateaus, take the gun at the ravine floor, then the FIRST MANDATORY
+  // GUN-JUMP over the 4-tall wall guarding door A.
   say('room 1: descent');
-  if (!await walkTo(20 * T)) return fail('descent blocks');
-  if (!await crawlTo(31 * T)) return fail('descent tunnel');
-  if (!await walkTo(35 * T)) return fail('descent pedestal');
+  if (!await walkTo(17 * T, { hop: true })) return fail('descent plateaus');
+  if (!await crawlTo(27 * T)) return fail('descent tunnel');
+  if (!await walkTo(33 * T + 8)) return fail('descent pedestal');
   if (!st().flags.gun) return fail('gun not collected');
   say('gun acquired');
-  if (!await walkTo(38 * T, { room: 'descent' })) return fail('descent door');
+  let overWall = false;
+  for (let attempt = 0; attempt < 4 && !overWall; attempt++) {
+    if (!await walkTo(34 * T + 8, { timeout: 6000 })) break;
+    await gunHop('ArrowRight', 1);       // the taught move: jump + 1 down-shot
+    overWall = st().x > 36 * T || st().room !== 'descent';
+    say(`gun-jump wall attempt ${attempt + 1}: x=${Math.round(st().x)} feet=${Math.round(feet())}`);
+  }
+  if (!overWall) return fail('mandatory gun-jump wall (descent)');
+  if (st().room === 'descent') {
+    if (!await walkTo(39 * T + 4, { room: 'descent', hop: true })) return fail('descent door');
+  }
   if (!await waitRoom('terraces')) return fail('terraces transition');
 
-  // --- 2. TERRACES: hop tickets, shoot weevils, jump both thorn patches
+  // --- 2. TERRACES: run-jump both thorn strips, shoot weevils, then the
+  // mandatory ladder: 1-chain onto the tier, 2-chain onto the door ledge
+  // above the thorn trench.
   say('room 2: terraces');
-  if (!await walkTo(10 * T, { hop: true, shoot: true })) return fail('terraces approach');
-  await runJump();                                     // over thorns x12-14
+  if (!await walkTo(6 * T, { hop: true })) return fail('terraces approach');
+  await runJump();                                     // over thorns x8-10
   if (!await walkTo(21 * T, { hop: true, shoot: true })) return fail('terraces mid');
-  await runJump();                                     // over thorns x23-25
-  if (!await walkTo(46 * T + 4, { hop: true, shoot: true, room: 'terraces' })) return fail('terraces door');
+  await runJump();                                     // over thorns x24-26 into the shallows
+  if (!await walkTo(33 * T, { hop: true, shoot: true })) return fail('terraces checkpoint');
+  let onLedge = false;
+  for (let attempt = 0; attempt < 8 && !onLedge; attempt++) {
+    if (st().room !== 'terraces') { onLedge = true; break; }
+    if (st().state === 'dead') { // trench death — wait for checkpoint respawn
+      const td = performance.now();
+      while (st().state !== 'play' && performance.now() - td < 6000) await sleep(150);
+      continue;
+    }
+    if (feet() > 200) {
+      if (st().x >= 39 * T) {
+        // missed into the trench — walk to the safe strip, climb the tier's right face
+        await walkTo(40 * T, { timeout: 4000 });
+        await gunHop('ArrowLeft', 1);
+      } else {
+        if (!await walkTo(33 * T, { timeout: 6000, shoot: true })) continue;
+        await gunHop('ArrowRight', 1);                 // 1-chain onto the tier
+      }
+      say(`tier attempt ${attempt + 1}: x=${Math.round(st().x)} feet=${Math.round(feet())}`);
+    }
+    if (feet() <= 196 && feet() > 120 && st().x < 41 * T) { // standing on the tier
+      await walkTo(38 * T, { timeout: 4000 });
+      await gunHop('ArrowRight', 2);                   // 2-chain onto the door ledge
+      say(`ledge attempt ${attempt + 1}: x=${Math.round(st().x)} feet=${Math.round(feet())}`);
+    }
+    onLedge = feet() <= 116 && st().x > 41 * T;
+  }
+  if (!onLedge && st().room === 'terraces') return fail('mandatory 2-chain door ledge (terraces)');
+  if (st().room === 'terraces') {
+    if (!await walkTo(46 * T + 4, { room: 'terraces' })) return fail('terraces door');
+  }
   if (!await waitRoom('cellar')) return fail('cellar transition');
 
-  // --- 3. CELLAR: crawl tunnel 1, hop thorns, crawl tunnel 2
+  // --- 3. CELLAR: crawl the short tunnel, hop the thorns, then the roll
+  // corridor (2-tall — the bot shoots the weevil; a human rolls past)
   say('room 3: cellar');
-  if (!await walkTo(6 * T, { hop: true, shoot: true })) return fail('cellar approach');
-  if (!await crawlTo(15 * T + 8)) return fail('cellar tunnel 1');
+  if (!await walkTo(5 * T, { hop: true, shoot: true })) return fail('cellar approach');
+  if (!await crawlTo(11 * T + 8)) return fail('cellar tunnel');
   await sleep(200);
-  await runJump('ArrowRight', 320);                    // over thorns x17-19
-  if (!await crawlTo(34 * T)) return fail('cellar tunnel 2');
+  await runJump('ArrowRight', 320);                    // over thorns x13-15
+  if (!await walkTo(30 * T, { hop: true, shoot: true })) return fail('cellar roll corridor');
   if (!await walkTo(42 * T + 4, { hop: true, shoot: true, room: 'cellar' })) return fail('cellar door');
   if (!await waitRoom('atrium')) return fail('atrium transition');
 
@@ -211,11 +284,12 @@ const log = await page.evaluate(async () => {
   say('Burr Boots purchased');
   K('Escape', true); await sleep(60); K('Escape', false);
   await sleep(250);
-  // climb the shaft and enter the top door — retried like a human would.
+  // climb the shaft (now phrased: oneway rest + thorned ticket bite) and
+  // enter the top door — retried like a human would.
   // NOTE: the climb exit can fling us THROUGH the door mid-air (that's a
   // success!), so every stage checks whether we already arrived.
   let entered = false;
-  for (let attempt = 0; attempt < 4 && !entered; attempt++) {
+  for (let attempt = 0; attempt < 5 && !entered; attempt++) {
     if (st().room === 'ascent' || await waitRoom('ascent', 1200)) { entered = true; break; }
     if (st().y + 14 > 120) { // back on the floor: re-enter and re-climb
       if (!await walkTo(23 * T, { hop: true })) return fail('shaft approach');
@@ -235,10 +309,15 @@ const log = await page.evaluate(async () => {
   }
   if (!entered) return fail('ascent transition');
 
-  // --- 5. ASCENT: chimney climb, over to the door ledge
+  // --- 5. ASCENT: phrased chimney climb (rests, thorn bites, zigzag), then
+  // past the summit gnat/spitter to the door ledge
   say('room 5: ascent');
-  if (!await walkTo(14 * T, { hop: true })) return fail('ascent chimney approach');
-  if (!await chimneyClimb(100)) return fail('ascent chimney climb');
+  let climbed = false;
+  for (let attempt = 0; attempt < 3 && !climbed; attempt++) {
+    if (!await walkTo(14 * T, { hop: true })) return fail('ascent chimney approach');
+    climbed = await chimneyClimb(100, 15000);
+  }
+  if (!climbed) return fail('ascent chimney climb');
   say('ascent chimney climbed');
   let inBoss = false;
   for (let attempt = 0; attempt < 5 && !inBoss; attempt++) {
@@ -248,18 +327,20 @@ const log = await page.evaluate(async () => {
     }
     if (st().x < 13 * T) await runJump('ArrowRight', 320); // exited on the left mass: hop the mouth
     if (st().y + 14 > 120) continue;                       // fell in — go around
-    if (!await walkTo(23 * T, { timeout: 6000 })) continue;
+    if (!await walkTo(23 * T, { timeout: 6000, shoot: true })) continue;
     await runJump('ArrowRight', 300);                  // onto the door ledge
     inBoss = st().room === 'bossHollow' || await enterDoorVia(28 * T, 25 * T, 'bossHollow');
   }
   if (!inBoss) return fail('boss transition');
 
-  // --- 6. BULLHORN BEETLE: prove real pellets land, then drain via damage model
+  // --- 6. BULLHORN BEETLE: wake it at the thorn strip's edge, retreat to
+  // clean ground, prove real pellets land, then drain via damage model
   say('room 6: boss hollow');
   window.__test.setHp(4);
   if (!await walkTo(15 * T)) return fail('arena approach');
   await sleep(1600); // roar
   if (!st().bossAwake) return fail('boss did not wake');
+  await walkTo(9 * T, { timeout: 4000 }); // retreat clear of the thorn strip
   const hp0 = st().bossHp;
   for (let i = 0; i < 12 && st().bossHp === hp0; i++) {
     const dirK = window.game.boss.cx > st().x ? 'ArrowRight' : 'ArrowLeft'; // face the boss
@@ -275,7 +356,8 @@ const log = await page.evaluate(async () => {
     while (g.boss && !g.boss.dead && guard-- > 0) g.boss.onHit(g, 1, 0);
   }
   await sleep(1600);
-  // trophy drops where the boss died — find it and walk onto it
+  // trophy drops where the boss died — find it and walk onto it (the arena
+  // thorn strip may chip us on the way; hp was reset above)
   for (let attempt = 0; attempt < 3 && !st().flags.trophy; attempt++) {
     const tr = window.game.entities.find(e => e.constructor.name === 'Trophy' && !e.done);
     if (!tr) break;
@@ -284,6 +366,7 @@ const log = await page.evaluate(async () => {
   }
   if (!st().flags.trophy) return fail('trophy not collected');
   say('trophy collected');
+  window.__test.setHp(4); // heal chip damage before the exit walk over the strip
   if (!await walkTo(34 * T + 4, { room: 'bossHollow' })) return fail('exit door walk');
   if (!await waitRoom('mineEntry', 9000)) return fail('level 2 transition');
 

@@ -67,7 +67,7 @@ async function main() {
       const fake = { connected: true, buttons: Array.from({ length: 17 }, () => ({ pressed: false })), axes: [0, 0] };
       const orig = navigator.getGamepads?.bind(navigator);
       Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [fake] });
-      window.__test.teleport('descent', 17, 10); // open floor, clear run-up
+      window.__test.teleport('descent', 4, 10); // open floor, clear run-up
       await new Promise(r => setTimeout(r, 400));
       const xa = window.__test.state().x;
       fake.buttons[15].pressed = true;             // d-pad right
@@ -180,8 +180,28 @@ async function main() {
       `lifts=${liftCount} charges=${gunjump.charges.join(',')}`);
     report('gun-jump: charges reset on landing', gunjump.afterLand === 3, `after=${gunjump.afterLand}`);
 
+    // ---------- 7b. no wall-refresh exploit before Burr Boots ----------
+    // pressing into a wall mid-air without boots must NOT grab it (and so
+    // can never refresh gun-jump charges — refresh is tied to wallSliding)
+    const noBoots = await page.evaluate(async () => {
+      window.__test.teleport('descent', 35, 12); // falling beside the door wall
+      window.__test.key('ArrowRight', true);
+      let maxVy = 0, wallDirSeen = 0;
+      for (let i = 0; i < 12; i++) {
+        await new Promise(r => setTimeout(r, 40));
+        const s = window.__test.state();
+        maxVy = Math.max(maxVy, s.vy);
+        wallDirSeen |= window.game.player.wallDir !== 0;
+      }
+      window.__test.key('ArrowRight', false);
+      return { maxVy, wallDirSeen, boots: window.__test.state().flags.burrBoots };
+    });
+    report('exploit guard: no wall grab / charge refresh without boots',
+      !noBoots.boots && !noBoots.wallDirSeen && noBoots.maxVy > 115,
+      `wallDir=${noBoots.wallDirSeen} maxVy=${noBoots.maxVy?.toFixed(0)}`);
+
     // ---------- 8. door transition descent -> terraces ----------
-    await step('teleport', 'descent', 35, 10);
+    await step('teleport', 'descent', 38, 14);
     await settle(200);
     await page.keyboard.down('ArrowRight');
     await page.waitForFunction(() => window.__test.state().room === 'terraces', { timeout: 5000 }).catch(() => {});
@@ -194,16 +214,16 @@ async function main() {
     await page.screenshot({ path: join(shots, '03-terraces.png') });
 
     // ---------- 9. checkpoint + damage + death + respawn (tickets kept) ----------
-    await step('teleport', 'terraces', 35, 11); // at checkpoint ledge
+    await step('teleport', 'terraces', 30, 13); // at checkpoint ledge
     await settle(600); // checkpoint activates on overlap
     s = await S();
     const cpActive = await page.evaluate(() => window.game.checkpoint?.room === 'terraces');
     report('checkpoint: activates on touch + heals', cpActive && s.hp === 4);
     await step('setTickets', 7);
     await step('setHp', 1);
-    // walk into thorns at x23-25 (from ledge, drop left into pit)
+    // drop into the thorn strip at x24-26
     const died = await page.evaluate(async () => {
-      window.__test.teleport('terraces', 24, 12); // right above thorns
+      window.__test.teleport('terraces', 24, 12); // right above thorns (no ticket in the fall line)
       const t0 = performance.now();
       return await new Promise(res => (function poll() {
         const st = window.__test.state();
@@ -222,7 +242,7 @@ async function main() {
     // ---------- 10. enemies present + pellet kills weevil ----------
     s = await S();
     const enemyKill = await page.evaluate(async () => {
-      window.__test.teleport('terraces', 20, 12);
+      window.__test.teleport('terraces', 20, 13);
       await new Promise(r => setTimeout(r, 300));
       const n0 = window.__test.state().enemies;
       // fire left and right a bunch
@@ -253,7 +273,7 @@ async function main() {
     await key('x', 60); // buy selected (Burr Boots)
     await settle(200);
     s = await S();
-    report('shop: Burr Boots purchased', s.flags.burrBoots === true && s.tickets === 10, `tkt=${s.tickets}`);
+    report('shop: Burr Boots purchased', s.flags.burrBoots === true && s.tickets === 8, `tkt=${s.tickets}`);
     await key('Escape', 60);
     await settle(150);
     s = await S();
@@ -261,7 +281,7 @@ async function main() {
 
     // ---------- 12. wall slide + wall jump in the shaft ----------
     const wall = await page.evaluate(async () => {
-      window.__test.teleport('atrium', 26, 6); // inside shaft, near right wall
+      window.__test.teleport('atrium', 27, 13); // inside shaft below the bite, against right wall
       await new Promise(r => setTimeout(r, 100));
       window.__test.key('ArrowRight', true); // press into right wall while falling
       await new Promise(r => setTimeout(r, 450));
@@ -294,6 +314,12 @@ async function main() {
         await new Promise(r => setTimeout(r, 40));
         const st = window.__test.state();
         if (st.grounded && st.y + 14 <= 100) break; // standing on a chimney-top mass
+        if (st.grounded && p.wallDir === 0) {       // knocked down / resting: relaunch
+          window.__test.key('KeyZ', true);
+          await new Promise(r => setTimeout(r, 140));
+          window.__test.key('KeyZ', false);
+          continue;
+        }
         if (p.wallDir !== 0) {
           window.__test.key('KeyZ', true);
           await new Promise(r => setTimeout(r, 80));

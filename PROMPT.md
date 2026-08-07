@@ -91,8 +91,8 @@ Jump math check: h = 300²/(2·1070) ≈ 42 px ≈ 2.6 tiles, t_apex ≈ 0.28 s 
 ### Level 1 — "The Fallen Garden" (finished, multi-room arc)
 
 Room graph (each its own ASCII map, doors connect):
-1. **Descent** — intro: Rumble tumbles in (no gun), walk right, learn run/jump/crawl; find the **Pea-Popper** on a pedestal (pickup beat + prompt).
-2. **Dew Terraces** — platforms "just out of reach of a single jump" teach gun-jump (geometry-as-tutorial, plus light button prompts — research says original lacked them); first weevils; tickets on risky branches; **checkpoint**.
+1. **Descent** — intro: Rumble tumbles in (no gun), descending plateaus force jump + crawl; find the **Pea-Popper** on a pedestal at the ravine floor, then a 3-tall wall forces the FIRST gun-jump before door A (geometry-as-tutorial).
+2. **Dew Terraces** — thorn strips force run-jumps; exit door sits on a 7-row ledge over a thorn trench: mandatory tier (1 gun-jump) then 2-chain — the signature verb is required to leave (plus light button prompts — research says original lacked them); first weevils; tickets on risky branches guarded by a spitter perch; **checkpoint**.
 3. **Bramble Cellar** — crawl tunnels, thorns, sporespitter, hidden ticket cache; teaches roll (rolling weevil ambush corridor).
 4. **The Atrium** — vertical hub with **vending machine** (Burr Boots 12 tickets, Acorn Cap hat 6); wall-jump shaft gated on Burr Boots; **checkpoint**; gnats.
 5. **Bloom Ascent** — wall-jump + gun-jump combined climb, moving hazards, dew jewelry everywhere.
