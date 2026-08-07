@@ -104,3 +104,30 @@ across them).
 
 Verification: 44/44 harness (14a now proves the chimney NEEDS chained shots)
 + 3x consecutive playthrough PASS (deaths=0, ~57-59s).
+
+---
+
+# Iteration 3 — final verdict (2026-08-07): 8/10, SHIPPABLE
+
+Third blind review (no access to prior verdicts): **overall 8/10** — descent 8,
+terraces 8, cellar 7, atrium 7, ascent 8, grotto 7, bossHollow 8, mineEntry 7.
+Its own tile-level reachability audit: CLEAN — zero violations, zero
+softlocks, both boots gates hold (the real lock is the ascent's rise-8 first
+segment), boss-death commute ~5-8s ("better than HK's False Knight bench
+run"). Explicit verdict: "YES — shippable Steam-demo craft bar... Ship it;
+land issue 1 first if there's a day to spare."
+
+Closed before shipping:
+1. [HIGH] Bloom-chamber left shoulder thorned (r13 cols 9-12) — the free
+   rest became a dare; back-half chain pressure raised.
+2. [MED] Grotto door approach: oneway rest at cellar r7 cols 2-4 splits the
+   at-the-ceiling rise-6 into two 1-chains for mid-skill players (the
+   terraces spitter-branch stays at the limit as mastery content).
+3. [LOW] Atrium left-ladder summit payoff ticket at (6,6).
+Accepted per reviewer: terraces backtrack thorn drop (load-bearing
+punishment), cellar roll-corridor shoot-bypass (multi-solution doctrine),
+atrium boots-skip traverse (dead-ends at the rise-8 chimney; speedrun depth).
+
+Loop summary: 3.5/10 → 6.5/10 → 8/10 across three independent reviews.
+Final state verified 44/44 harness + 3x consecutive full-bot playthroughs
+(deaths=0, ~55-58s).
