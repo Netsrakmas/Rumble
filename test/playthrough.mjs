@@ -135,8 +135,24 @@ const log = await page.evaluate(async () => {
   // opposing-wall chimney climb until at/above targetFeet.
   // finishDir 'left'/'right': near the top, ride the final wall jump in that
   // direction and hold it until landing (how a human exits onto a side ledge).
-  async function chimneyClimb(targetFeet, timeout = 25000, finishDir = null) {
+  // chainShot: fire an aimed-down shot mid-flight after every launch (jump
+  // HELD through it) — the wall-jump + gun-jump recombination the Ascent's
+  // bloom chamber demands, where the walls fall away for six rows.
+  async function chimneyClimb(targetFeet, timeout = 25000, finishDir = null, { chainShot = false } = {}) {
     const p = window.game.player;
+    async function launch() { // jump (+ optional chained down-shot, Z held)
+      K('KeyZ', true);
+      if (chainShot) {
+        await sleep(120);
+        K('ArrowDown', true); K('KeyX', true);
+        await sleep(50);
+        K('KeyX', false); K('ArrowDown', false);
+        await sleep(60);
+      } else {
+        await sleep(90);
+      }
+      K('KeyZ', false);
+    }
     let dir = 'ArrowRight';
     K(dir, true);
     await tapZ(150);
@@ -146,9 +162,9 @@ const log = await page.evaluate(async () => {
         await sleep(40);
         const s = st();
         if (s.state === 'dead') { say('DIED in chimney'); return false; }
-        if (s.grounded && s.y + 14 <= targetFeet + 4) return true;
-        if (!finishDir && s.y + 14 <= targetFeet - 15) return true;
-        if (s.grounded && p.wallDir === 0) { await tapZ(140); continue; } // grounded stall: relaunch
+        if (s.grounded && s.y + 14 <= targetFeet + 4) return true; // grounded only —
+        // an airborne "success" can still fall back into the shaft
+        if (s.grounded && p.wallDir === 0) { await launch(); continue; } // grounded stall: relaunch
         if (p.wallDir !== 0) {
           const nearTop = s.y + 14 < targetFeet + 60;
           const launchWall = finishDir === 'left' ? 1 : -1; // jump FROM the opposite wall
@@ -165,10 +181,21 @@ const log = await page.evaluate(async () => {
             if (st().grounded && st().y + 14 <= targetFeet + 4) return true;
             continue; // missed — resume climbing
           }
-          K('KeyZ', true); await sleep(80); K('KeyZ', false);
+          K('KeyZ', true);                     // wall jump fires on the press
+          await sleep(60);
           K(dir, false);
           dir = dir === 'ArrowRight' ? 'ArrowLeft' : 'ArrowRight';
-          K(dir, true);
+          K(dir, true);                        // drift toward the far wall
+          if (chainShot) {                     // chained down-shot, Z held
+            await sleep(60);
+            K('ArrowDown', true); K('KeyX', true);
+            await sleep(50);
+            K('KeyX', false); K('ArrowDown', false);
+            await sleep(50);
+          } else {
+            await sleep(20);
+          }
+          K('KeyZ', false);
         }
       }
       if (st().grounded && st().y + 14 <= targetFeet + 15) return true;
@@ -243,7 +270,7 @@ const log = await page.evaluate(async () => {
       say(`tier attempt ${attempt + 1}: x=${Math.round(st().x)} feet=${Math.round(feet())}`);
     }
     if (feet() <= 196 && feet() > 120 && st().x < 41 * T) { // standing on the tier
-      await walkTo(38 * T, { timeout: 4000 });
+      await walkTo(38 * T, { timeout: 4000, shoot: true }); // clear the tier-top gnat
       await gunHop('ArrowRight', 2);                   // 2-chain onto the door ledge
       say(`ledge attempt ${attempt + 1}: x=${Math.round(st().x)} feet=${Math.round(feet())}`);
     }
@@ -313,20 +340,25 @@ const log = await page.evaluate(async () => {
   // past the summit gnat/spitter to the door ledge
   say('room 5: ascent');
   let climbed = false;
-  for (let attempt = 0; attempt < 3 && !climbed; attempt++) {
+  for (let attempt = 0; attempt < 4 && !climbed; attempt++) {
     if (!await walkTo(14 * T, { hop: true })) return fail('ascent chimney approach');
-    climbed = await chimneyClimb(100, 15000);
+    climbed = await chimneyClimb(100, 15000, null, { chainShot: true });
   }
   if (!climbed) return fail('ascent chimney climb');
   say('ascent chimney climbed');
   let inBoss = false;
-  for (let attempt = 0; attempt < 5 && !inBoss; attempt++) {
-    if (st().y + 14 > 120) { // fell back down — re-climb
-      if (!await walkTo(14 * T, { hop: true })) return fail('ascent re-approach');
-      if (!await chimneyClimb(100)) continue;
+  for (let attempt = 0; attempt < 6 && !inBoss; attempt++) {
+    if (st().state === 'dead') { // spore/thorn death — wait out the respawn
+      const td = performance.now();
+      while (st().state !== 'play' && performance.now() - td < 6000) await sleep(150);
+      continue;
+    }
+    if (st().y + 14 > 110) { // fell back down (floor or bulge shelf) — re-climb
+      if (!await walkTo(14 * T, { hop: true })) continue;
+      if (!await chimneyClimb(100, 15000, null, { chainShot: true })) continue;
     }
     if (st().x < 13 * T) await runJump('ArrowRight', 320); // exited on the left mass: hop the mouth
-    if (st().y + 14 > 120) continue;                       // fell in — go around
+    if (st().y + 14 > 110) continue;                       // fell in — go around
     if (!await walkTo(23 * T, { timeout: 6000, shoot: true })) continue;
     await runJump('ArrowRight', 300);                  // onto the door ledge
     inBoss = st().room === 'bossHollow' || await enterDoorVia(28 * T, 25 * T, 'bossHollow');

@@ -297,46 +297,58 @@ async function main() {
     report('wall: wall jump kicks away+up', wall.jumpVx < -100 && wall.jumpVy < -150, `vx=${wall.jumpVx?.toFixed(0)} vy=${wall.jumpVy?.toFixed(0)}`);
 
     // ---------- 14a. route: the ascent chimney is actually climbable ----------
-    // scripted wall-jump climb (regression guard for level-geometry edits)
+    // scripted wall-jump + chained-shot climb (regression guard for level
+    // geometry — the bloom-chamber bulge REQUIRES one gun-jump per crossing,
+    // wall-jump alone must top out below the resumed walls)
     const climb = await page.evaluate(async () => {
+      const sleep = (ms) => new Promise(r => setTimeout(r, ms));
       window.__test.grant('burrBoots');
       window.__test.teleport('ascent', 14, 22);
-      await new Promise(r => setTimeout(r, 400));
+      await sleep(400);
       const p = window.game.player;
+      const chainShot = async () => { // fired with Z still held
+        await sleep(60);
+        window.__test.key('ArrowDown', true); window.__test.key('KeyX', true);
+        await sleep(50);
+        window.__test.key('KeyX', false); window.__test.key('ArrowDown', false);
+        await sleep(50);
+      };
       let dir = 'ArrowRight';
       window.__test.key(dir, true);
       window.__test.key('KeyZ', true);
-      await new Promise(r => setTimeout(r, 150));
+      await sleep(150);
       window.__test.key('KeyZ', false);
       let jumps = 0;
       const t0 = performance.now();
       while (performance.now() - t0 < 15000) {
-        await new Promise(r => setTimeout(r, 40));
+        await sleep(40);
         const st = window.__test.state();
         if (st.grounded && st.y + 14 <= 100) break; // standing on a chimney-top mass
         if (st.grounded && p.wallDir === 0) {       // knocked down / resting: relaunch
           window.__test.key('KeyZ', true);
-          await new Promise(r => setTimeout(r, 140));
+          await sleep(120);
+          await chainShot();
           window.__test.key('KeyZ', false);
           continue;
         }
         if (p.wallDir !== 0) {
-          window.__test.key('KeyZ', true);
-          await new Promise(r => setTimeout(r, 80));
-          window.__test.key('KeyZ', false);
+          window.__test.key('KeyZ', true);          // wall jump fires on press
+          await sleep(60);
           window.__test.key(dir, false);
           dir = dir === 'ArrowRight' ? 'ArrowLeft' : 'ArrowRight';
           window.__test.key(dir, true);
+          await chainShot();
+          window.__test.key('KeyZ', false);
           jumps++;
         }
       }
       window.__test.key(dir, false);
-      await new Promise(r => setTimeout(r, 300));
+      await sleep(300);
       const st = window.__test.state();
       window.__test.setHp(4); // undo any chip damage taken during the climb
       return { jumps, topReached: st.y + 14 <= 100 };
     });
-    report('route: ascent chimney climbable via wall jumps', climb.topReached, `${climb.jumps} wall jumps`);
+    report('route: ascent chimney climbable (wall jumps + chained shots)', climb.topReached, `${climb.jumps} wall jumps`);
 
 
     // ---------- 13. roll + crawl ----------

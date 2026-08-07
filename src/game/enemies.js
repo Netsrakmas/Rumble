@@ -78,6 +78,10 @@ export class Weevil extends EnemyBase {
     // turn at ledges (only when grounded)
     const ahead = { x: b.x + (this.dir > 0 ? b.w : -2), y: b.y + b.h + 1, w: 2, h: 2 };
     if (b.vy === 0 && !room.solidRect(ahead) && !room.onewayStop({ ...ahead, y: ahead.y }, ahead.y)) this.dir *= -1;
+    // turn at thorns — weevils respect their garden's teeth (keeps patrols
+    // penned between hazard strips instead of strolling across them)
+    const aheadBody = { x: b.x + (this.dir > 0 ? b.w + 1 : -3), y: b.y, w: 2, h: b.h };
+    if (b.vy === 0 && room.thornsRect(aheadBody)) this.dir *= -1;
     this.anim.update(dt);
   }
   render(ctx, cam) {

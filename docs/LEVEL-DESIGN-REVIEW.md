@@ -60,3 +60,47 @@ harness test).
 Verification: 44/44 harness (new exploit-guard test) + full bot playthrough
 3× consecutive PASS (deaths=0, ~60-70s, chains performed with human inputs:
 jump HELD through chain — releasing early cuts lifts via releaseGravMult).
+
+---
+
+# Iteration 2 — fresh-eyes verdict (2026-08-07) and response
+
+**Overall: 6.5/10** (blind re-review, up from 3.5). Reachability audit clean;
+front-half teaching praised (Descent 7, Terraces 7.5); headline gap: the
+signature verb went silent after the boots purchase — Ascent (5) climbable by
+wall-jump alone, and the level's back half demanded zero gun-jumps.
+
+## Response (directives 1-9, all implemented)
+1. Summit checkpoint added in Ascent at (22,5) — kills the boss-death commute.
+2. Ascent recombination exam: the chimney's middle six rows now open into the
+   **bloom chamber** — an 11-wide bulge where both walls fall away. Pure
+   wall-jumping tops out 11px below the full-width oneway shelf at r10
+   (verified empirically: stuck at feet 162-165 vs plane 160, two trials);
+   wall-jump + one chained down-shot lands the shelf and exits in ~3s. The
+   climb is now the wall-jump + gun-jump combination PROMPT.md promised.
+   (Two intermediate shapes were tested and rejected: a 4-6 wide chimney —
+   pure wall-jumps still climb any gap ≤ ~10 tiles; and a floating pod —
+   its side faces are themselves wall-jumpable.) Summit spitter moved to
+   (12,5) overlooking the chimney mouth.
+3. Cellar checkpoint added at (38,9), after the roll corridor — a Grotto
+   death no longer replays the Terraces exam plus the whole Cellar.
+4. Boss thorn strip widened 4 → 5 tiles (cols 16-20): roll i-frames
+   (~3.5 tiles) can no longer cheese it; crossing is a committed jump or a
+   chain — the signature verb enters the boss fight. (6 would have collided
+   with the 9-tile wake radius from the left approach.)
+5. Descent mastery tease: ledge at (31-32, r10-11) with ticket — a rise-7
+   3-chain, the level's only one, visible from the gun pedestal; doubles as
+   a mastery skip lane over the door wall (checklist 15).
+6. Second weevil at (26,9) inside the roll corridor — sniping both from
+   outside is slow; rolling is the elegant answer.
+7. Terraces gnat moved (28,9) → (36,8): out of checkpoint aggro, now
+   pressures the tier exam instead.
+8. Pre-boots Atrium door-B peek: ACCEPTED as a mastery peek (the Ascent
+   base rest is rise 9, unclimbable bootless; the sign explains the gate).
+9. Stale "4-tall" comment fixed to 3-tall.
+Engine fix from the reviewer's open question: weevils now treat thorns ahead
+as a turn condition (they patrol between hazard strips instead of strolling
+across them).
+
+Verification: 44/44 harness (14a now proves the chimney NEEDS chained shots)
++ 3x consecutive playthrough PASS (deaths=0, ~57-59s).
