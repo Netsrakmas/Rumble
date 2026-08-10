@@ -27,6 +27,7 @@ export class Player {
     this.wallLockT = 0; this.wallLockDir = 0;
     this.crawling = false;
     this.gunjumpCharges = C.gunjumpCharges;
+    this.gunGraceT = 0;  // post-gun-jump: recoil lift ignores early-release gravity
     this.dropT = 0; // oneway drop-through window
 
     // presentation
@@ -71,6 +72,9 @@ export class Player {
     this.body.vy = C.gunjumpVy * (charged ? C.gunjumpChargeMult : 1);
     game.fireProjectile(this.cx, this.body.bottom - 2, 0, charged ? C.chargeShotSpeed : C.shotSpeed, charged);
     game.hitstop(C.gunjumpFreeze);
+    this.gunGraceT = 0.25; // the recoil lift must not demand a held jump key —
+    // without this, releasing jump silently cuts each chain lift from ~31px
+    // to ~12px (hidden state; the #1 "chain fell short" complaint)
     game.camera.addTrauma(charged ? 0.3 : 0.18);
     this.squash(0.8, 1.25);
     this.gunjumpFlashT = 0.1;
@@ -154,7 +158,7 @@ export class Player {
     this.coyoteT -= dt; this.bufferT -= dt; this.shotCd -= dt;
     this.meleeCd -= dt; this.meleeT -= dt; this.rollCd -= dt; this.rollBufferT -= dt;
     this.iframesT -= dt; this.hurtT -= dt; this.wallLockT -= dt;
-    this.gunjumpFlashT -= dt; this.dropT -= dt;
+    this.gunjumpFlashT -= dt; this.dropT -= dt; this.gunGraceT -= dt;
 
     const rolling = this.rollT > 0;
     const stunned = this.hurtT > 0;
@@ -236,8 +240,9 @@ export class Player {
     }
     // ---- gravity (variable jump via early-release multiplier — Pittman) ----
     let grav = C.gravity;
+    const holdEquiv = input.down('jump') || this.gunGraceT > 0; // gun-lift counts as held
     if (b.vy > 0) grav *= C.fallGravMult;
-    else if (!input.down('jump')) grav *= C.releaseGravMult;      // released early: cut the rise
+    else if (!holdEquiv) grav *= C.releaseGravMult;               // released early: cut the rise
     else if (Math.abs(b.vy) < C.apexWindow) grav *= C.apexGravMult; // held at apex: float a beat
     b.vy += grav * dt;
     let maxFall = input.down('down') && !this.grounded ? C.fastFall : C.maxFall;

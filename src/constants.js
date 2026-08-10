@@ -9,8 +9,8 @@ export const C = {
   // gravity & jump (h ≈ 42 px ≈ 2.6 tiles, t_apex ≈ 0.28 s)
   gravity: 1070, fallGravMult: 1.7, apexGravMult: 0.5, apexWindow: 60,
   maxFall: 320, fastFall: 440,
-  jumpVy: -300, releaseGravMult: 2.5, jumpHBoost: 30,
-  coyote: 0.100, jumpBuffer: 0.100, cornerCorrection: 8,
+  jumpVy: -300, releaseGravMult: 1.9, jumpHBoost: 30, // 2.5 → 1.9 (user: "jump too hard to time" — early release was cutting jumps too hard; max held height unchanged)
+  coyote: 0.120, jumpBuffer: 0.120, cornerCorrection: 8, // 100ms → 120ms, same feedback
 
   // gun-jump & shooting
   gunjumpVy: -260, gunjumpCharges: 3, // -240 → -260 after live playtest: chains fell short of placed platforms
