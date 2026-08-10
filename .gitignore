@@ -2,3 +2,5 @@ node_modules/
 package.json
 package-lock.json
 test/screenshots/
+test/bar/
+test/_shot-*.mjs
